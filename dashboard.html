@@ -12,7 +12,7 @@
   :root{
     --pine:#1E2A20; --pine-deep:#152018; --paper:#FAF7F1; --paper-dim:#F1ECE1;
     --ink:#24261F; --wine:#8C3B2E; --wine-dark:#732E23; --olive:#5E6B45;
-    --gold:#C79A3B; --line:#E4DFD3; --green-ok:#3F6B44;
+    --gold:#C79A3B; --line:#E4DFD3; --green-ok:#3F6B44; --blue-troco:#2A4B5C;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -28,16 +28,10 @@
   .ms-title { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:#B4C4B7; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;}
   .ms-title > span.ms-label { display:flex; align-items:center; gap:6px; }
   .ms-controls { display:flex; align-items:center; gap:6px; text-transform:none; letter-spacing:0; }
-  .ms-controls select{
-    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25); color:#fff;
-    padding:6px 8px; border-radius:4px; font-family:'Inter',sans-serif; font-size:0.78rem; cursor:pointer;
-  }
+  .ms-controls select{ background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25); color:#fff; padding:6px 8px; border-radius:4px; font-family:'Inter',sans-serif; font-size:0.78rem; cursor:pointer; }
   .ms-controls select:focus{outline:none; border-color:var(--gold);}
   .ms-controls select option{ color:var(--ink); }
-  .btn-mes-atual{
-    display:none; background:transparent; border:1px solid rgba(255,255,255,0.3); color:#EAD9A8;
-    padding:6px 10px; border-radius:4px; font-family:'Inter',sans-serif; font-size:0.72rem; cursor:pointer; white-space:nowrap;
-  }
+  .btn-mes-atual{ display:none; background:transparent; border:1px solid rgba(255,255,255,0.3); color:#EAD9A8; padding:6px 10px; border-radius:4px; font-family:'Inter',sans-serif; font-size:0.72rem; cursor:pointer; white-space:nowrap; }
   .btn-mes-atual.show{ display:inline-block; }
   .btn-mes-atual:hover{ background:rgba(255,255,255,0.1); }
   .ms-grid { display:flex; justify-content:space-between; gap:10px; }
@@ -45,6 +39,18 @@
   .ms-item b { font-family:'Fraunces',serif; font-size:1.2rem; font-weight:600; color:#fff;}
   .ms-item b.red { color:#E4897B; }
   .ms-item b.green { color:#8FCB99; }
+
+  /* Mini Histórico */
+  .mini-history-wrap { display:flex; justify-content:center; margin-bottom:16px; }
+  .mini-history { display:flex; gap:10px; background:#fff; padding:8px 16px; border-radius:20px; border:1px solid var(--line); box-shadow:0 2px 4px rgba(0,0,0,0.02); }
+  .mh-dot { width:14px; height:14px; border-radius:50%; background:#E4DFD3; cursor:pointer; position:relative; transition:transform 0.15s; }
+  .mh-dot:hover { transform:scale(1.2); }
+  .mh-dot.pos { background:var(--green-ok); }
+  .mh-dot.neg { background:var(--wine-dark); }
+  .mh-dot.active { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--pine); z-index:2; }
+  .mh-tooltip { position:absolute; bottom:100%; left:50%; transform:translateX(-50%); background:var(--pine-deep); color:#fff; font-size:0.7rem; padding:4px 8px; border-radius:4px; white-space:nowrap; opacity:0; pointer-events:none; margin-bottom:8px; transition:opacity 0.2s; font-weight:500; }
+  .mh-tooltip::after { content:''; position:absolute; top:100%; left:50%; margin-left:-4px; border-width:4px; border-style:solid; border-color:var(--pine-deep) transparent transparent transparent; }
+  .mh-dot:hover .mh-tooltip { opacity:1; }
 
   .date-nav{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:20px; position:relative;}
   .date-nav button.nav-btn{background:#fff; border:1px solid var(--line); width:36px; height:36px; border-radius:50%; font-size:1rem; cursor:pointer; color:var(--pine);}
@@ -54,11 +60,9 @@
   .date-label .dia{font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; text-transform:capitalize; padding:3px 10px; border-radius:14px; transition:background 0.15s, color 0.15s;}
   .date-label .dia.dia-lucro{ background:rgba(63,107,68,0.12); color:var(--green-ok); }
   .date-label .dia.dia-prejuizo{ background:rgba(140,59,46,0.1); color:var(--wine-dark); }
-
   .icon-picker {background:none; border:none; font-size:1.2rem; cursor:pointer; padding:2px;}
   .date-label .hoje-link{display:none; font-size:0.75rem; color:var(--wine); cursor:pointer; margin-top:2px;}
   .date-label .hoje-link.show{display:block;}
-
   .hidden-picker { position:absolute; opacity:0; width:0; height:0; border:none; pointer-events:none; }
 
   .summary{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:22px;}
@@ -68,23 +72,26 @@
   .sum-card.saldo .value{color:var(--green-ok);}
   .sum-card.gastos .value{color:var(--wine-dark);}
   .breakdown{grid-column:1 / -1; display:flex; gap:8px; flex-wrap:wrap;}
-  .pill-stat{background:#fff; border:1px solid var(--line); border-radius:20px; padding:6px 12px; font-size:0.78rem; color:var(--ink); display:flex; gap:6px;}
+  .breakdown-row { width:100%; display:flex; gap:6px; flex-wrap:wrap; margin-bottom:4px; }
+  .pill-stat{background:#fff; border:1px solid var(--line); border-radius:20px; padding:4px 10px; font-size:0.72rem; color:var(--ink); display:flex; gap:6px;}
   .pill-stat b{color:var(--pine);}
 
   .actions{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:26px;}
-  .action-btn{padding:16px 10px; border:none; border-radius:4px; font-family:inherit; font-weight:600; font-size:0.95rem; cursor:pointer; color:#fff;}
+  .action-btn{padding:14px 10px; border:none; border-radius:4px; font-family:inherit; font-weight:600; font-size:0.92rem; cursor:pointer; color:#fff; display:flex; align-items:center; justify-content:center; gap:8px;}
   .action-btn.entrada{background:var(--olive);}
   .action-btn.entrada:hover{background:#4c5738;}
   .action-btn.gasto{background:var(--wine);}
   .action-btn.gasto:hover{background:var(--wine-dark);}
+  .action-btn.troco{background:var(--blue-troco);}
+  .action-btn.sangria{background:#4A4138;}
 
   section.list-section{margin-bottom:24px;}
   section.list-section h2{font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--olive); margin:0 0 10px;}
   .row-item{background:#fff; border:1px solid var(--line); border-radius:4px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
-  .row-item .desc{font-size:0.9rem;}
+  .row-item .desc{font-size:0.9rem; flex:1;}
   .row-item .desc .tag{display:inline-block; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--olive); margin-right:6px; background:#F1ECE1; padding:2px 6px; border-radius:3px;}
-  .row-item .right{display:flex; align-items:center; gap:8px;}
-  .row-item .valor{font-weight:600; margin-right:4px;}
+  .row-item .right{display:flex; align-items:center; gap:6px;}
+  .row-item .valor{font-weight:600; margin-right:4px; font-size:0.95rem;}
   .icon-btn{background:none; border:none; color:#B4A99A; cursor:pointer; font-size:1.1rem; padding:4px;}
   .icon-btn:hover{color:var(--wine);}
   .icon-btn.edit:hover{color:var(--pine);}
@@ -98,7 +105,7 @@
   .modal h3{font-family:'Fraunces',serif; font-size:1.2rem; margin:0 0 16px;}
   
   .pillrow{display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;}
-  .pillbtn{flex:1 1 auto; padding:10px 12px; border:1.5px solid var(--line); background:#fff; border-radius:5px; font-family:inherit; font-size:0.85rem; font-weight:500; cursor:pointer; color:var(--ink);}
+  .pillbtn{flex:1 1 auto; padding:10px 12px; border:1.5px solid var(--line); background:#fff; border-radius:5px; font-family:inherit; font-size:0.85rem; font-weight:500; cursor:pointer; color:var(--ink); text-align:center;}
   .pillbtn.active{border-color:var(--pine); background:var(--pine); color:#fff;}
   
   label{display:block; font-size:0.78rem; font-weight:500; color:var(--olive); margin:14px 0 6px;}
@@ -116,8 +123,10 @@
 
   .manage-list{margin-top:14px; max-height:220px; overflow-y:auto;}
   .manage-item{display:flex; justify-content:space-between; align-items:center; padding:9px 4px; border-bottom:1px solid var(--line); font-size:0.88rem;}
-  .manage-item button{background:none; border:none; color:#B4A99A; cursor:pointer;}
-  .manage-item button:hover{color:var(--wine);}
+  .manage-actions { display:flex; gap:8px; }
+  .manage-actions button{background:none; border:none; color:#B4A99A; cursor:pointer;}
+  .manage-actions button.edit-btn:hover{color:var(--pine);}
+  .manage-actions button.del-btn:hover{color:var(--wine);}
   .add-row{display:flex; gap:8px; margin-top:12px;}
   .add-row input{flex:1;}
   .add-row button{padding:0 16px; border:none; border-radius:5px; background:var(--olive); color:#fff; font-weight:600; cursor:pointer;}
@@ -147,6 +156,12 @@
     </div>
   </div>
 
+  <div class="mini-history-wrap">
+    <div class="mini-history" id="miniHistory">
+      <!-- 7 bolinhas geradas aqui -->
+    </div>
+  </div>
+
   <div class="date-nav">
     <button class="nav-btn" id="prevDay">‹</button>
     <div class="date-label">
@@ -173,12 +188,17 @@
       <div class="label">Saldo do dia</div>
       <div class="value" id="saldoDia">R$ 0,00</div>
     </div>
-    <div class="breakdown" id="breakdown"></div>
+    <div class="breakdown">
+      <div class="breakdown-row" id="breakdownEntradas"></div>
+      <div class="breakdown-row" id="breakdownGastos"></div>
+    </div>
   </div>
 
   <div class="actions">
-    <button class="action-btn entrada" id="btnAbrirEntrada">+ Dinheiro no caixa</button>
+    <button class="action-btn entrada" id="btnAbrirEntrada">+ Entrada</button>
     <button class="action-btn gasto" id="btnAbrirGasto">+ Gasto</button>
+    <button class="action-btn troco" id="btnTroco">🪙 Fundo Troco</button>
+    <button class="action-btn sangria" id="btnSangria">🔒 Sangria</button>
   </div>
 
   <section class="list-section">
@@ -192,23 +212,20 @@
   </section>
 </main>
 
-<!-- ===== Modal: Entrada ===== -->
+<!-- ===== Modais (Idênticos, com leves ajustes internos) ===== -->
 <div class="overlay" id="overlayEntrada">
   <div class="modal">
     <h3 id="tituloModalEntrada">Dinheiro no caixa</h3>
-    
     <label>Turno</label>
     <div class="pillrow" id="turnoPills">
       <button class="pillbtn active" data-val="Dia">Dia</button>
       <button class="pillbtn" data-val="Noite">Noite</button>
     </div>
-    
     <label>Modalidade</label>
     <div class="pillrow" id="modalidadePills">
       <button class="pillbtn active" data-val="Salão">Salão</button>
       <button class="pillbtn" data-val="Tele">Tele</button>
     </div>
-
     <label>Forma de pagamento</label>
     <div class="pillrow" id="formaPagamentoPills">
       <button class="pillbtn" data-fp="dinheiro">Dinheiro</button>
@@ -216,7 +233,10 @@
       <button class="pillbtn" data-fp="ifood">iFood</button>
       <button class="pillbtn" data-fp="99">99</button>
     </div>
-    
+    <div id="entradaObsWrap" style="display:none;">
+      <label>Observação Exclusiva</label>
+      <input type="text" id="entradaObservacao" disabled>
+    </div>
     <label>Valor (R$)</label>
     <input type="text" id="entradaValor" inputmode="numeric" placeholder="0,00">
     <div class="modal-err" id="entradaErr"></div>
@@ -227,18 +247,16 @@
   </div>
 </div>
 
-<!-- ===== Modal: Gasto ===== -->
 <div class="overlay" id="overlayGasto">
   <div class="modal">
     <h3 id="tituloModalGasto">Novo gasto</h3>
-    <label>Categoria</label>
+    <label id="catGastoLabel">Categoria</label>
     <div class="pillrow" id="categoriaPills">
       <button class="pillbtn" data-cat="fornecedor">Fornecedor</button>
       <button class="pillbtn" data-cat="funcionario">Funcionário</button>
       <button class="pillbtn" data-cat="particular">Particular</button>
       <button class="pillbtn" data-cat="outros">Outros</button>
     </div>
-
     <div id="gastoSelectWrap" style="display:none;">
       <label id="gastoSelectLabel">Selecionar</label>
       <div class="select-row">
@@ -246,17 +264,14 @@
         <button class="gear-btn" id="btnGerenciarLista" title="Gerenciar lista">⚙</button>
       </div>
     </div>
-
     <div id="gastoOutrosWrap" style="display:none;">
       <label>Descrição</label>
       <input type="text" id="gastoDescricao" placeholder="Ex: manutenção da geladeira">
     </div>
-
     <div id="gastoObsWrap" style="display:none;">
       <label>Observação (opcional)</label>
       <input type="text" id="gastoObservacao" placeholder="Ex: adiantamento, motivo, detalhe...">
     </div>
-
     <label>Valor (R$)</label>
     <input type="text" id="gastoValor" inputmode="numeric" placeholder="0,00">
     <div class="modal-err" id="gastoErr"></div>
@@ -267,7 +282,6 @@
   </div>
 </div>
 
-<!-- ===== Modal: Gerenciar ===== -->
 <div class="overlay" id="overlayGerenciar">
   <div class="modal">
     <h3 id="gerenciarTitulo">Gerenciar</h3>
@@ -305,66 +319,43 @@ function mascaraMoeda(e) {
   v = (parseInt(v, 10) / 100).toFixed(2);
   e.target.value = v.replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
-function parseMoeda(str) {
-  if(!str) return 0;
-  return parseFloat(str.replace(/\./g, '').replace(',', '.'));
-}
+function parseMoeda(str) { if(!str) return 0; return parseFloat(str.replace(/\./g, '').replace(',', '.')); }
 document.getElementById('entradaValor').addEventListener('input', mascaraMoeda);
 document.getElementById('gastoValor').addEventListener('input', mascaraMoeda);
 
 let currentDate = new Date();
-let currentMesDate = new Date(); // Controla apenas o calendário do resumo mensal
+let currentMesDate = new Date(); 
 let entradasDoDia = [];
 let gastosDoDia = []; 
 
-// ---------- Pickers de Calendário ----------
-document.getElementById('btnPickData').addEventListener('click', () => {
-  try { document.getElementById('pickerData').showPicker(); } catch(e) { document.getElementById('pickerData').focus(); }
-});
+// ---------- Pickers & Selects ----------
+document.getElementById('btnPickData').addEventListener('click', () => { try { document.getElementById('pickerData').showPicker(); } catch(e) { document.getElementById('pickerData').focus(); } });
 document.getElementById('pickerData').addEventListener('change', (e) => {
-  if(e.target.value){
-    const [y, m, d] = e.target.value.split('-');
-    currentDate = new Date(y, m-1, d);
-    currentMesDate = new Date(y, m-1, 1); // Sincroniza o mês lá de cima também
-    refresh();
-  }
+  if(e.target.value){ const [y, m, d] = e.target.value.split('-'); currentDate = new Date(y, m-1, d); currentMesDate = new Date(y, m-1, 1); refresh(); }
 });
 
-// ---------- Selects de Mês/Ano (resumo mensal) ----------
 const nomesMeses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 (function initMesSelects(){
-  const selMes = document.getElementById('selectMes');
-  selMes.innerHTML = nomesMeses.map((n, i) => `<option value="${i}">${n}</option>`).join('');
-
+  document.getElementById('selectMes').innerHTML = nomesMeses.map((n, i) => `<option value="${i}">${n}</option>`).join('');
   const selAno = document.getElementById('selectAno');
   const anoAtual = new Date().getFullYear();
-  const anos = [];
-  for (let a = anoAtual - 4; a <= anoAtual + 1; a++) anos.push(a);
-  selAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+  selAno.innerHTML = [anoAtual-2, anoAtual-1, anoAtual, anoAtual+1].map(a => `<option value="${a}">${a}</option>`).join('');
 })();
 
 function syncMesSelects(){
   document.getElementById('selectMes').value = currentMesDate.getMonth();
   document.getElementById('selectAno').value = currentMesDate.getFullYear();
   const hoje = new Date();
-  const ehMesAtual = currentMesDate.getMonth() === hoje.getMonth() && currentMesDate.getFullYear() === hoje.getFullYear();
-  document.getElementById('btnMesAtual').classList.toggle('show', !ehMesAtual);
+  document.getElementById('btnMesAtual').classList.toggle('show', !(currentMesDate.getMonth() === hoje.getMonth() && currentMesDate.getFullYear() === hoje.getFullYear()));
 }
 
 function onMesAnoChange(){
-  const m = Number(document.getElementById('selectMes').value);
-  const a = Number(document.getElementById('selectAno').value);
-  currentMesDate = new Date(a, m, 1);
-  syncMesSelects();
-  refreshMes(); // Atualiza SÓ a caixinha do mês, sem mudar a data do caixa
+  currentMesDate = new Date(Number(document.getElementById('selectAno').value), Number(document.getElementById('selectMes').value), 1);
+  syncMesSelects(); refreshMes(); 
 }
 document.getElementById('selectMes').addEventListener('change', onMesAnoChange);
 document.getElementById('selectAno').addEventListener('change', onMesAnoChange);
-document.getElementById('btnMesAtual').addEventListener('click', () => {
-  currentMesDate = new Date();
-  syncMesSelects();
-  refreshMes();
-});
+document.getElementById('btnMesAtual').addEventListener('click', () => { currentMesDate = new Date(); syncMesSelects(); refreshMes(); });
 
 function renderDateLabel(){
   document.getElementById('diaLabel').textContent = currentDate.toLocaleDateString('pt-BR', { weekday:'short', day:'numeric', month:'long' });
@@ -386,47 +377,76 @@ async function loadCache(){
   }
 }
 
+// ---------- 7-Day Mini Histórico ----------
+async function renderMiniHistory() {
+  const end = new Date(currentDate);
+  const start = new Date(currentDate);
+  start.setDate(start.getDate() - 6); // Puxa 7 dias pra trás
+
+  const [histE, histG] = await Promise.all([
+    db.from('entradas').select('data, valor').gte('data', toDateStr(start)).lte('data', toDateStr(end)),
+    db.from('gastos').select('data, valor').gte('data', toDateStr(start)).lte('data', toDateStr(end))
+  ]);
+
+  const map = {};
+  for(let i=0; i<7; i++){
+    const d = new Date(start); d.setDate(d.getDate() + i);
+    map[toDateStr(d)] = { e: 0, g: 0, dateObj: d };
+  }
+  
+  (histE.data||[]).forEach(x => { if(map[x.data]) map[x.data].e += Number(x.valor) });
+  (histG.data||[]).forEach(x => { if(map[x.data]) map[x.data].g += Number(x.valor) });
+
+  let html = '';
+  Object.keys(map).sort().forEach(dateKey => {
+    const info = map[dateKey];
+    const saldo = info.e - info.g;
+    const isActive = dateKey === toDateStr(currentDate) ? 'active' : '';
+    let colorClass = '';
+    if (info.e > 0 || info.g > 0) colorClass = saldo >= 0 ? 'pos' : 'neg'; // Cinza se não teve movimento
+    
+    const dataCurta = info.dateObj.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
+    html += `
+      <div class="mh-dot ${colorClass} ${isActive}" data-jump="${dateKey}">
+        <div class="mh-tooltip">${dataCurta}<br/><b>${fmtBRL(saldo)}</b></div>
+      </div>
+    `;
+  });
+  
+  const el = document.getElementById('miniHistory');
+  el.innerHTML = html;
+  el.querySelectorAll('.mh-dot').forEach(dot => dot.addEventListener('click', () => {
+    const [y, m, d] = dot.dataset.jump.split('-');
+    currentDate = new Date(y, m-1, d); currentMesDate = new Date(y, m-1, 1); refresh();
+  }));
+}
+
 async function refreshMes() {
-  const ano = currentMesDate.getFullYear();
-  const mes = String(currentMesDate.getMonth()+1).padStart(2,'0');
+  const ano = currentMesDate.getFullYear(); const mes = String(currentMesDate.getMonth()+1).padStart(2,'0');
   const lastDay = new Date(ano, currentMesDate.getMonth() + 1, 0).getDate();
-  const startMes = `${ano}-${mes}-01`;
-  const endMes = `${ano}-${mes}-${lastDay}`;
-
+  const startMes = `${ano}-${mes}-01`; const endMes = `${ano}-${mes}-${lastDay}`;
   syncMesSelects();
-
   const [resMesEnt, resMesGas] = await Promise.all([
     db.from('entradas').select('valor').gte('data', startMes).lte('data', endMes),
     db.from('gastos').select('valor').gte('data', startMes).lte('data', endMes)
   ]);
-
   const totE = (resMesEnt.data || []).reduce((s,x) => s + Number(x.valor), 0);
   const totG = (resMesGas.data || []).reduce((s,x) => s + Number(x.valor), 0);
   const lucroMes = totE - totG;
-  document.getElementById('mesEntradas').textContent = fmtBRL(totE);
-  document.getElementById('mesSaidas').textContent = fmtBRL(totG);
+  document.getElementById('mesEntradas').textContent = fmtBRL(totE); document.getElementById('mesSaidas').textContent = fmtBRL(totG);
   const elLucroMes = document.getElementById('mesLucro');
-  elLucroMes.textContent = fmtBRL(lucroMes);
-  elLucroMes.classList.toggle('green', lucroMes >= 0);
-  elLucroMes.classList.toggle('red', lucroMes < 0);
+  elLucroMes.textContent = fmtBRL(lucroMes); elLucroMes.classList.toggle('green', lucroMes >= 0); elLucroMes.classList.toggle('red', lucroMes < 0);
 }
 
 async function refresh(){
-  renderDateLabel();
-  await refreshMes();
+  renderDateLabel(); await refreshMes(); await renderMiniHistory();
   const dateStr = toDateStr(currentDate);
-
   const [resDiaEnt, resDiaGas] = await Promise.all([
     db.from('entradas').select('*').eq('data', dateStr).order('created_at', { ascending:false }),
     db.from('gastos').select('*').eq('data', dateStr).order('created_at', { ascending:false })
   ]);
-
-  entradasDoDia = resDiaEnt.data || [];
-  gastosDoDia = resDiaGas.data || [];
-  
-  renderSummary(entradasDoDia, gastosDoDia);
-  renderListaEntradas(entradasDoDia);
-  renderListaGastos(gastosDoDia);
+  entradasDoDia = resDiaEnt.data || []; gastosDoDia = resDiaGas.data || [];
+  renderSummary(entradasDoDia, gastosDoDia); renderListaEntradas(entradasDoDia); renderListaGastos(gastosDoDia);
 }
 
 const fpLabel = { dinheiro:'Dinheiro', cartao:'Cartão', ifood:'iFood', '99':'99' };
@@ -438,21 +458,17 @@ function renderSummary(entradas, gastos){
   document.getElementById('totalEntradas').textContent = fmtBRL(tE);
   document.getElementById('totalGastos').textContent = fmtBRL(tG);
   const elSaldo = document.getElementById('saldoDia');
-  elSaldo.textContent = fmtBRL(saldo);
-  elSaldo.style.color = saldo < 0 ? 'var(--wine-dark)' : 'var(--green-ok)';
+  elSaldo.textContent = fmtBRL(saldo); elSaldo.style.color = saldo < 0 ? 'var(--wine-dark)' : 'var(--green-ok)';
 
-  // Colore o dia no seletor de data: verde (lucro), vermelho (prejuízo), neutro (sem lançamentos ainda)
-  const diaEl = document.getElementById('diaLabel');
-  diaEl.classList.remove('dia-lucro', 'dia-prejuizo');
-  if (entradas.length || gastos.length) {
-    diaEl.classList.add(saldo >= 0 ? 'dia-lucro' : 'dia-prejuizo');
-  }
+  const diaEl = document.getElementById('diaLabel'); diaEl.classList.remove('dia-lucro', 'dia-prejuizo');
+  if (entradas.length || gastos.length) diaEl.classList.add(saldo >= 0 ? 'dia-lucro' : 'dia-prejuizo');
 
-  const byForma = {};
-  entradas.forEach(e => byForma[e.forma_pagamento] = (byForma[e.forma_pagamento]||0) + Number(e.valor));
-  document.getElementById('breakdown').innerHTML = Object.keys(fpLabel).map(fp =>
-    `<div class="pill-stat">${fpLabel[fp]} <b>${fmtBRL(byForma[fp]||0)}</b></div>`
-  ).join('');
+  // Filtros / Subtotais
+  const bE = {}; entradas.forEach(e => bE[e.forma_pagamento] = (bE[e.forma_pagamento]||0) + Number(e.valor));
+  document.getElementById('breakdownEntradas').innerHTML = Object.keys(fpLabel).map(fp => `<div class="pill-stat">${fpLabel[fp]} <b>${fmtBRL(bE[fp]||0)}</b></div>`).join('');
+  
+  const bG = {}; gastos.forEach(g => bG[g.categoria] = (bG[g.categoria]||0) + Number(g.valor));
+  document.getElementById('breakdownGastos').innerHTML = Object.keys(bG).length > 0 ? Object.keys(bG).map(c => `<div class="pill-stat" style="background:#F4F1EB; border-color:#E0D8C8;">${labelFor[c]||'Outros'} <b>${fmtBRL(bG[c])}</b></div>`).join('') : '';
 }
 
 function renderListaEntradas(entradas){
@@ -462,172 +478,161 @@ function renderListaEntradas(entradas){
     <div class="row-item">
       <div class="desc">
         <span class="tag">${fpLabel[e.forma_pagamento]}</span>
-        ${e.observacao ? `<span class="tag" style="background:#E2E8E4;">${e.observacao}</span>` : ''}
+        ${e.observacao ? `<span class="tag" style="${e.observacao.includes('Troco') ? 'background:var(--blue-troco);color:#fff;' : 'background:#E2E8E4;'}">${e.observacao}</span>` : ''}
       </div>
-      <div class="right">
-        <span class="valor">${fmtBRL(e.valor)}</span>
-        <button class="icon-btn edit" data-edit-entrada="${e.id}">✎</button>
-        <button class="icon-btn" data-del-entrada="${e.id}">✕</button>
-      </div>
+      <div class="right"><span class="valor">${fmtBRL(e.valor)}</span><button class="icon-btn edit" data-edit-entrada="${e.id}">✎</button><button class="icon-btn" data-del-entrada="${e.id}">✕</button></div>
     </div>`).join('');
-  
-  el.querySelectorAll('[data-del-entrada]').forEach(btn => btn.addEventListener('click', async () => {
-    if (!confirm('Excluir esta entrada?')) return;
-    await db.from('entradas').delete().eq('id', btn.dataset.delEntrada);
-    refresh();
-  }));
-
-  el.querySelectorAll('[data-edit-entrada]').forEach(btn => btn.addEventListener('click', () => {
-    const e = entradasDoDia.find(x => x.id === btn.dataset.editEntrada);
-    abrirModalEntrada(e);
-  }));
+  el.querySelectorAll('[data-del-entrada]').forEach(btn => btn.addEventListener('click', async () => { if (!confirm('Excluir?')) return; await db.from('entradas').delete().eq('id', btn.dataset.delEntrada); refresh(); }));
+  el.querySelectorAll('[data-edit-entrada]').forEach(btn => btn.addEventListener('click', () => abrirModalEntrada(entradasDoDia.find(x => x.id === btn.dataset.editEntrada))));
 }
 
 function nomeGasto(g){
   if (g.categoria === 'outros') return g.descricao || 'Outros';
-  const item = cache[g.categoria]?.find(i => i.id === g[g.categoria+'_id']);
-  return item ? item.nome : '(removido)';
+  const item = cache[g.categoria]?.find(i => i.id === g[g.categoria+'_id']); return item ? item.nome : '(removido)';
 }
 
 function renderListaGastos(gastos){
   const el = document.getElementById('listaGastos');
   if (!gastos.length){ el.innerHTML = '<div class="empty">Nenhum gasto lançado.</div>'; return; }
-  el.innerHTML = gastos.map(g => `
+  el.innerHTML = gastos.map(g => {
+    // Para Particular, a observação agora mora na coluna descricao para não dar erro 400!
+    const obsBadge = (g.categoria === 'particular' && g.descricao) ? `<span class="tag" style="background:#E2E8E4;">${g.descricao}</span>` : (g.observacao ? `<span class="tag" style="background:#E2E8E4;">${g.observacao}</span>` : '');
+    const isSangria = g.descricao && g.descricao.includes('Sangria');
+    return `
     <div class="row-item">
-      <div class="desc"><span class="tag">${labelFor[g.categoria] || 'Outros'}</span>${nomeGasto(g)}${g.observacao ? `<span class="tag" style="background:#E2E8E4;">${g.observacao}</span>` : ''}</div>
-      <div class="right">
-        <span class="valor">${fmtBRL(g.valor)}</span>
-        <button class="icon-btn edit" data-edit-gasto="${g.id}">✎</button>
-        <button class="icon-btn" data-del-gasto="${g.id}">✕</button>
-      </div>
-    </div>`).join('');
-  
-  el.querySelectorAll('[data-del-gasto]').forEach(btn => btn.addEventListener('click', async () => {
-    if (!confirm('Excluir este gasto?')) return;
-    await db.from('gastos').delete().eq('id', btn.dataset.delGasto);
-    refresh();
-  }));
-
-  el.querySelectorAll('[data-edit-gasto]').forEach(btn => btn.addEventListener('click', () => {
-    const g = gastosDoDia.find(x => x.id === btn.dataset.editGasto);
-    abrirModalGasto(g);
-  }));
+      <div class="desc"><span class="tag" style="${isSangria ? 'background:#4A4138;color:#fff;' : ''}">${labelFor[g.categoria] || 'Outros'}</span>${nomeGasto(g)} ${obsBadge}</div>
+      <div class="right"><span class="valor">${fmtBRL(g.valor)}</span><button class="icon-btn edit" data-edit-gasto="${g.id}">✎</button><button class="icon-btn" data-del-gasto="${g.id}">✕</button></div>
+    </div>`
+  }).join('');
+  el.querySelectorAll('[data-del-gasto]').forEach(btn => btn.addEventListener('click', async () => { if (!confirm('Excluir?')) return; await db.from('gastos').delete().eq('id', btn.dataset.delGasto); refresh(); }));
+  el.querySelectorAll('[data-edit-gasto]').forEach(btn => btn.addEventListener('click', () => abrirModalGasto(gastosDoDia.find(x => x.id === btn.dataset.editGasto))));
 }
 
-// ---------- Selectors para Pills ----------
 function setupPills(containerId, varObj, varKey){
   document.getElementById(containerId).addEventListener('click', (e) => {
     const btn = e.target.closest('.pillbtn'); if (!btn) return;
-    document.querySelectorAll(`#${containerId} .pillbtn`).forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
+    document.querySelectorAll(`#${containerId} .pillbtn`).forEach(b => b.classList.remove('active')); btn.classList.add('active');
     varObj[varKey] = btn.dataset.val || btn.dataset.fp || btn.dataset.cat;
     if(varObj.onChange) varObj.onChange(varObj[varKey]);
   });
 }
 
-// ---------- Entrada ----------
-let estEntrada = { turno:'Dia', mod:'Salão', fp:null, editId:null };
-setupPills('turnoPills', estEntrada, 'turno');
-setupPills('modalidadePills', estEntrada, 'mod');
-setupPills('formaPagamentoPills', estEntrada, 'fp');
+// ---------- Entrada & Fundo Troco ----------
+let estEntrada = { turno:'Dia', mod:'Salão', fp:null, editId:null, isTroco: false };
+setupPills('turnoPills', estEntrada, 'turno'); setupPills('modalidadePills', estEntrada, 'mod'); setupPills('formaPagamentoPills', estEntrada, 'fp');
 
-function abrirModalEntrada(edit = null) {
+function abrirModalEntrada(edit = null, isTroco = false) {
   estEntrada.editId = edit ? edit.id : null;
-  document.getElementById('tituloModalEntrada').textContent = edit ? 'Editar Entrada' : 'Dinheiro no caixa';
+  estEntrada.isTroco = isTroco || (edit && edit.observacao === 'Fundo de Troco');
+  
+  document.getElementById('tituloModalEntrada').textContent = estEntrada.isTroco ? 'Fundo de Troco' : (edit ? 'Editar Entrada' : 'Dinheiro no caixa');
   document.getElementById('entradaErr').textContent = '';
 
-  if (edit) {
-    const infos = (edit.observacao || 'Dia | Salão').split(' | ');
-    estEntrada.turno = infos[0] || 'Dia';
-    estEntrada.mod = infos[1] || 'Salão';
-    estEntrada.fp = edit.forma_pagamento;
+  const pillBoxes = ['turnoPills', 'modalidadePills'];
+  const obsWrap = document.getElementById('entradaObsWrap');
 
-    document.querySelectorAll('#turnoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.turno));
-    document.querySelectorAll('#modalidadePills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.mod));
-    document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.fp === estEntrada.fp));
-    
-    document.getElementById('entradaValor').value = (edit.valor).toFixed(2).replace('.',',');
-    mascaraMoeda({target: document.getElementById('entradaValor')});
+  if (estEntrada.isTroco) {
+    pillBoxes.forEach(id => document.getElementById(id).style.display = 'none');
+    obsWrap.style.display = 'block';
+    document.getElementById('entradaObservacao').value = 'Fundo de Troco';
+    estEntrada.fp = 'dinheiro';
+    document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => {
+      b.classList.toggle('active', b.dataset.fp === 'dinheiro');
+      b.style.pointerEvents = b.dataset.fp === 'dinheiro' ? 'auto' : 'none';
+      b.style.opacity = b.dataset.fp === 'dinheiro' ? '1' : '0.5';
+    });
   } else {
-    estEntrada.fp = null;
-    document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
-    document.getElementById('entradaValor').value = '';
+    pillBoxes.forEach(id => document.getElementById(id).style.display = 'flex');
+    obsWrap.style.display = 'none';
+    document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => {
+      b.style.pointerEvents = 'auto'; b.style.opacity = '1';
+    });
+    
+    if (edit) {
+      const infos = (edit.observacao || 'Dia | Salão').split(' | ');
+      estEntrada.turno = infos[0] || 'Dia'; estEntrada.mod = infos[1] || 'Salão'; estEntrada.fp = edit.forma_pagamento;
+      document.querySelectorAll('#turnoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.turno));
+      document.querySelectorAll('#modalidadePills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.mod));
+      document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.fp === estEntrada.fp));
+    } else {
+      estEntrada.fp = null;
+      document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
+    }
   }
 
+  document.getElementById('entradaValor').value = edit ? (edit.valor).toFixed(2).replace('.',',') : '';
+  if(edit) mascaraMoeda({target: document.getElementById('entradaValor')});
   document.getElementById('overlayEntrada').classList.add('show');
   setTimeout(() => document.getElementById('entradaValor').focus(), 100);
 }
-
-document.getElementById('btnAbrirEntrada').addEventListener('click', () => abrirModalEntrada(null));
+document.getElementById('btnAbrirEntrada').addEventListener('click', () => abrirModalEntrada(null, false));
+document.getElementById('btnTroco').addEventListener('click', () => abrirModalEntrada(null, true));
 
 document.getElementById('btnSalvarEntrada').addEventListener('click', async () => {
   const vNum = parseMoeda(document.getElementById('entradaValor').value);
   const err = document.getElementById('entradaErr');
   if (!estEntrada.fp) { err.textContent = 'Escolha a forma de pagamento.'; return; }
   if (!vNum || vNum <= 0) { err.textContent = 'Informe um valor válido.'; return; }
-  
   err.textContent = 'Salvando...';
-  const payload = {
-    data: toDateStr(currentDate),
-    forma_pagamento: estEntrada.fp,
-    valor: vNum,
-    observacao: `${estEntrada.turno} | ${estEntrada.mod}`
-  };
-
-  if (estEntrada.editId) {
-    await db.from('entradas').update(payload).eq('id', estEntrada.editId);
-  } else {
-    payload.created_by = currentUser?.id;
-    await db.from('entradas').insert(payload);
-  }
-
-  document.getElementById('overlayEntrada').classList.remove('show');
-  refresh();
+  const payload = { data: toDateStr(currentDate), forma_pagamento: estEntrada.fp, valor: vNum, observacao: estEntrada.isTroco ? 'Fundo de Troco' : `${estEntrada.turno} | ${estEntrada.mod}` };
+  if (estEntrada.editId) await db.from('entradas').update(payload).eq('id', estEntrada.editId);
+  else { payload.created_by = currentUser?.id; await db.from('entradas').insert(payload); }
+  document.getElementById('overlayEntrada').classList.remove('show'); refresh();
 });
 
-// ---------- Gasto ----------
-let estGasto = { cat:null, editId:null, onChange: (c) => {
+// ---------- Gasto & Sangria ----------
+let estGasto = { cat:null, editId:null, isSangria: false, onChange: (c) => {
   const sel = document.getElementById('gastoSelectWrap'), out = document.getElementById('gastoOutrosWrap'), obs = document.getElementById('gastoObsWrap');
+  if (estGasto.isSangria) { sel.style.display = 'none'; out.style.display = 'block'; obs.style.display = 'none'; document.getElementById('categoriaPills').style.pointerEvents = 'none'; return; }
+  document.getElementById('categoriaPills').style.pointerEvents = 'auto';
   if (c === 'outros'){ sel.style.display = 'none'; out.style.display = 'block'; obs.style.display = 'none'; }
   else if(c){ out.style.display = 'none'; sel.style.display = 'block'; document.getElementById('gastoSelectLabel').textContent = labelFor[c]; populateSelect(c); obs.style.display = (c === 'particular') ? 'block' : 'none'; }
 }};
 setupPills('categoriaPills', estGasto, 'cat');
 
 function populateSelect(cat){
-  const sel = document.getElementById('gastoSelect');
-  const items = cache[cat] || [];
+  const sel = document.getElementById('gastoSelect'); const items = cache[cat] || [];
   sel.innerHTML = items.length ? items.map(i => `<option value="${i.id}">${i.nome}</option>`).join('') : `<option value="">Vazio (use a engrenagem)</option>`;
 }
 
-function abrirModalGasto(gastoEdit = null) {
+function abrirModalGasto(gastoEdit = null, isSangria = false) {
   estGasto.editId = gastoEdit ? gastoEdit.id : null;
-  document.getElementById('tituloModalGasto').textContent = gastoEdit ? 'Editar Gasto' : 'Novo Gasto';
-  document.getElementById('gastoErr').textContent = '';
+  estGasto.isSangria = isSangria || (gastoEdit && gastoEdit.descricao === 'Sangria de Caixa');
   
-  const catToSelect = gastoEdit ? gastoEdit.categoria : null;
-  document.querySelectorAll('#categoriaPills .pillbtn').forEach(b => {
-    b.classList.toggle('active', b.dataset.cat === catToSelect);
-  });
-  estGasto.cat = catToSelect;
-  estGasto.onChange(catToSelect);
+  document.getElementById('tituloModalGasto').textContent = estGasto.isSangria ? 'Sangria / Retirada' : (gastoEdit ? 'Editar Gasto' : 'Novo Gasto');
+  document.getElementById('gastoErr').textContent = '';
+  document.getElementById('catGastoLabel').style.display = estGasto.isSangria ? 'none' : 'block';
+  document.getElementById('categoriaPills').style.display = estGasto.isSangria ? 'none' : 'flex';
+  
+  const catToSelect = estGasto.isSangria ? 'outros' : (gastoEdit ? gastoEdit.categoria : null);
+  document.querySelectorAll('#categoriaPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.cat === catToSelect));
+  estGasto.cat = catToSelect; estGasto.onChange(catToSelect);
+
+  if (estGasto.isSangria) {
+    document.getElementById('gastoDescricao').value = 'Sangria de Caixa';
+    document.getElementById('gastoDescricao').disabled = true;
+  } else {
+    document.getElementById('gastoDescricao').disabled = false;
+  }
 
   if (gastoEdit) {
-    document.getElementById('gastoValor').value = (gastoEdit.valor).toFixed(2).replace('.',',');
-    mascaraMoeda({target: document.getElementById('gastoValor')});
-    if(catToSelect === 'outros') document.getElementById('gastoDescricao').value = gastoEdit.descricao || '';
-    else document.getElementById('gastoSelect').value = gastoEdit[`${catToSelect}_id`];
-    document.getElementById('gastoObservacao').value = gastoEdit.observacao || '';
+    document.getElementById('gastoValor').value = (gastoEdit.valor).toFixed(2).replace('.',','); mascaraMoeda({target: document.getElementById('gastoValor')});
+    if(!estGasto.isSangria) {
+      if(catToSelect === 'outros') document.getElementById('gastoDescricao').value = gastoEdit.descricao || '';
+      else document.getElementById('gastoSelect').value = gastoEdit[`${catToSelect}_id`];
+      // Carrega observação do particular que agora fica salva em descricao para evitar o erro 400
+      if(catToSelect === 'particular') document.getElementById('gastoObservacao').value = gastoEdit.descricao || ''; 
+    }
   } else {
     document.getElementById('gastoValor').value = '';
-    document.getElementById('gastoDescricao').value = '';
-    document.getElementById('gastoObservacao').value = '';
+    if(!estGasto.isSangria) { document.getElementById('gastoDescricao').value = ''; document.getElementById('gastoObservacao').value = ''; }
   }
   
   document.getElementById('overlayGasto').classList.add('show');
   setTimeout(() => document.getElementById('gastoValor').focus(), 100);
 }
-
-document.getElementById('btnAbrirGasto').addEventListener('click', () => abrirModalGasto(null));
+document.getElementById('btnAbrirGasto').addEventListener('click', () => abrirModalGasto(null, false));
+document.getElementById('btnSangria').addEventListener('click', () => abrirModalGasto(null, true));
 document.getElementById('btnGerenciarLista').addEventListener('click', () => { if (estGasto.cat && estGasto.cat !== 'outros') abrirGerenciar(estGasto.cat); });
 
 document.getElementById('btnSalvarGasto').addEventListener('click', async () => {
@@ -638,71 +643,67 @@ document.getElementById('btnSalvarGasto').addEventListener('click', async () => 
 
   const payload = { data: toDateStr(currentDate), categoria: estGasto.cat, valor: vNum };
   if (estGasto.cat === 'outros'){
-    const desc = document.getElementById('gastoDescricao').value.trim();
-    if (!desc) { err.textContent = 'Descreva o gasto.'; return; }
-    payload.descricao = desc;
+    payload.descricao = document.getElementById('gastoDescricao').value.trim();
+    if (!payload.descricao) { err.textContent = 'Descreva o gasto.'; return; }
   } else {
     const selId = document.getElementById('gastoSelect').value;
     if (!selId) { err.textContent = 'Selecione um item (ou cadastre).'; return; }
     payload[estGasto.cat + '_id'] = selId;
   }
+  
+  // Consertando o erro 400: salvando a observação dentro da coluna 'descricao'
   if (estGasto.cat === 'particular'){
-    const obs = document.getElementById('gastoObservacao').value.trim();
-    payload.observacao = obs || null;
+    payload.descricao = document.getElementById('gastoObservacao').value.trim() || null;
   }
 
   err.textContent = 'Salvando...';
-  if (estGasto.editId) {
-    await db.from('gastos').update(payload).eq('id', estGasto.editId);
-  } else {
-    payload.created_by = currentUser?.id;
-    await db.from('gastos').insert(payload);
-  }
-  
-  document.getElementById('overlayGasto').classList.remove('show');
-  refresh();
+  if (estGasto.editId) await db.from('gastos').update(payload).eq('id', estGasto.editId);
+  else { payload.created_by = currentUser?.id; await db.from('gastos').insert(payload); }
+  document.getElementById('overlayGasto').classList.remove('show'); refresh();
 });
 
-// ---------- Gerenciar ----------
+// ---------- Gerenciar (com edição consertada) ----------
 let gerenciarCatAtual = null;
 async function abrirGerenciar(cat){
-  gerenciarCatAtual = cat;
-  document.getElementById('gerenciarTitulo').textContent = 'Gerenciar ' + labelFor[cat].toLowerCase() + 's';
-  document.getElementById('gerenciarNovoNome').value = '';
-  document.getElementById('gerenciarErr').textContent = '';
-  renderGerenciarLista();
-  document.getElementById('overlayGerenciar').classList.add('show');
+  gerenciarCatAtual = cat; document.getElementById('gerenciarTitulo').textContent = 'Gerenciar ' + labelFor[cat].toLowerCase() + 's';
+  document.getElementById('gerenciarNovoNome').value = ''; document.getElementById('gerenciarErr').textContent = '';
+  renderGerenciarLista(); document.getElementById('overlayGerenciar').classList.add('show');
   setTimeout(() => document.getElementById('gerenciarNovoNome').focus(), 100);
 }
 function renderGerenciarLista(){
-  const el = document.getElementById('gerenciarLista');
-  const items = cache[gerenciarCatAtual] || [];
-  el.innerHTML = items.length ? items.map(i => `<div class="manage-item">${i.nome}<button data-remove="${i.id}">remover</button></div>`).join('') : '<div class="empty">Nada cadastrado.</div>';
+  const el = document.getElementById('gerenciarLista'); const items = cache[gerenciarCatAtual] || [];
+  el.innerHTML = items.length ? items.map(i => `
+    <div class="manage-item">${i.nome}
+      <div class="manage-actions">
+        <button class="edit-btn" data-edit-item="${i.id}" data-nome="${i.nome}">✎</button>
+        <button class="del-btn" data-remove="${i.id}">✕</button>
+      </div>
+    </div>`).join('') : '<div class="empty">Nada cadastrado.</div>';
+  
   el.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', async () => {
     await db.from(tableFor[gerenciarCatAtual]).update({ ativo:false }).eq('id', btn.dataset.remove);
     await loadCache(); renderGerenciarLista(); if (estGasto.cat === gerenciarCatAtual) populateSelect(gerenciarCatAtual);
   }));
+  
+  // Consertando a edição de nomes que havia sumido
+  el.querySelectorAll('[data-edit-item]').forEach(btn => btn.addEventListener('click', async () => {
+    const novoNome = prompt('Corrigir nome:', btn.dataset.nome);
+    if(novoNome && novoNome.trim() !== '' && novoNome !== btn.dataset.nome) {
+      await db.from(tableFor[gerenciarCatAtual]).update({ nome: novoNome.trim() }).eq('id', btn.dataset.editItem);
+      await loadCache(); renderGerenciarLista(); if (estGasto.cat === gerenciarCatAtual) populateSelect(gerenciarCatAtual);
+    }
+  }));
 }
 document.getElementById('btnGerenciarAdicionar').addEventListener('click', async () => {
-  const nome = document.getElementById('gerenciarNovoNome').value.trim();
-  if (!nome) return;
+  const nome = document.getElementById('gerenciarNovoNome').value.trim(); if (!nome) return;
   await db.from(tableFor[gerenciarCatAtual]).insert({ nome });
-  document.getElementById('gerenciarNovoNome').value = '';
-  await loadCache(); renderGerenciarLista(); if (estGasto.cat === gerenciarCatAtual) populateSelect(gerenciarCatAtual);
+  document.getElementById('gerenciarNovoNome').value = ''; await loadCache(); renderGerenciarLista(); if (estGasto.cat === gerenciarCatAtual) populateSelect(gerenciarCatAtual);
 });
 
 // ---------- Teclas de Atalho ----------
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') document.querySelectorAll('.overlay').forEach(ov => ov.classList.remove('show'));
-});
-function addEnter(idInput, idBtn) {
-  document.getElementById(idInput).addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); document.getElementById(idBtn).click(); }});
-}
-addEnter('entradaValor', 'btnSalvarEntrada');
-addEnter('gastoValor', 'btnSalvarGasto');
-addEnter('gastoDescricao', 'btnSalvarGasto');
-addEnter('gastoObservacao', 'btnSalvarGasto');
-addEnter('gerenciarNovoNome', 'btnGerenciarAdicionar');
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.overlay').forEach(ov => ov.classList.remove('show')); });
+function addEnter(idInput, idBtn) { document.getElementById(idInput).addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); document.getElementById(idBtn).click(); }}); }
+addEnter('entradaValor', 'btnSalvarEntrada'); addEnter('gastoValor', 'btnSalvarGasto'); addEnter('gastoDescricao', 'btnSalvarGasto'); addEnter('gastoObservacao', 'btnSalvarGasto'); addEnter('gerenciarNovoNome', 'btnGerenciarAdicionar');
 
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('show')));
 document.querySelectorAll('.overlay').forEach(ov => ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('show'); }));
