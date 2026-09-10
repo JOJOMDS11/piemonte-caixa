@@ -25,7 +25,8 @@
   main{max-width:720px; margin:0 auto; padding:20px 16px;}
 
   .month-summary { background:var(--pine-deep); color:#fff; border-radius:6px; padding:16px 20px; margin-bottom:24px; box-shadow:0 10px 20px -10px rgba(0,0,0,0.3); }
-  .ms-title { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:#B4C4B7; margin-bottom:12px; display:flex; justify-content:space-between;}
+  .ms-title { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:#B4C4B7; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;}
+  .ms-title span { display:flex; align-items:center; gap:6px; }
   .ms-grid { display:flex; justify-content:space-between; gap:10px; }
   .ms-item { display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:#B4C4B7;}
   .ms-item b { font-family:'Fraunces',serif; font-size:1.2rem; font-weight:600; color:#fff;}
@@ -33,14 +34,17 @@
   .ms-item b.green { color:#8FCB99; }
 
   .date-nav{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:20px; position:relative;}
-  .date-nav button{background:#fff; border:1px solid var(--line); width:36px; height:36px; border-radius:50%; font-size:1rem; cursor:pointer; color:var(--pine);}
-  .date-nav button:hover{background:#fff;}
+  .date-nav button.nav-btn{background:#fff; border:1px solid var(--line); width:36px; height:36px; border-radius:50%; font-size:1rem; cursor:pointer; color:var(--pine);}
+  .date-nav button.nav-btn:hover{background:#fff;}
   .date-label{text-align:center; min-width:220px; position:relative;}
-  .date-label .dia{font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; text-transform:capitalize; cursor:pointer; display:inline-block; padding:4px 8px; border-radius:4px;}
-  .date-label .dia:hover{background:rgba(0,0,0,0.04);}
+  .date-label .dia-wrap {display:flex; align-items:center; justify-content:center; gap:8px;}
+  .date-label .dia{font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; text-transform:capitalize;}
+  
+  .icon-picker {background:none; border:none; font-size:1.2rem; cursor:pointer; padding:2px;}
   .date-label .hoje-link{display:none; font-size:0.75rem; color:var(--wine); cursor:pointer; margin-top:2px;}
   .date-label .hoje-link.show{display:block;}
-  #pickerData{position:absolute; opacity:0; width:0; height:0; top:0; left:50%;}
+
+  .hidden-picker { position:absolute; opacity:0; width:0; height:0; border:none; pointer-events:none; }
 
   .summary{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:22px;}
   .sum-card{background:#fff; border:1px solid var(--line); border-radius:4px; padding:14px 16px;}
@@ -113,7 +117,11 @@
 
 <main>
   <div class="month-summary">
-    <div class="ms-title">Resumo do Mês <span id="mesNomeTop"></span></div>
+    <div class="ms-title">
+      <span>Resumo do Mês <span id="mesNomeTop"></span> </span>
+      <button class="icon-picker" id="btnPickMes">📅</button>
+      <input type="month" id="pickerMes" class="hidden-picker">
+    </div>
     <div class="ms-grid">
       <div class="ms-item">Entradas <b id="mesEntradas">R$ 0,00</b></div>
       <div class="ms-item">Saídas <b class="red" id="mesSaidas">R$ 0,00</b></div>
@@ -122,13 +130,16 @@
   </div>
 
   <div class="date-nav">
-    <button id="prevDay">‹</button>
+    <button class="nav-btn" id="prevDay">‹</button>
     <div class="date-label">
-      <label class="dia" id="diaLabel" for="pickerData">—</label>
-      <input type="date" id="pickerData">
+      <div class="dia-wrap">
+        <span class="dia" id="diaLabel">—</span>
+        <button class="icon-picker" id="btnPickData">📅</button>
+        <input type="date" id="pickerData" class="hidden-picker">
+      </div>
       <div class="hoje-link" id="hojeLink">voltar para hoje</div>
     </div>
-    <button id="nextDay">›</button>
+    <button class="nav-btn" id="nextDay">›</button>
   </div>
 
   <div class="summary">
@@ -166,7 +177,7 @@
 <!-- ===== Modal: Entrada ===== -->
 <div class="overlay" id="overlayEntrada">
   <div class="modal">
-    <h3>Dinheiro no caixa</h3>
+    <h3 id="tituloModalEntrada">Dinheiro no caixa</h3>
     
     <label>Turno</label>
     <div class="pillrow" id="turnoPills">
@@ -279,25 +290,42 @@ document.getElementById('entradaValor').addEventListener('input', mascaraMoeda);
 document.getElementById('gastoValor').addEventListener('input', mascaraMoeda);
 
 let currentDate = new Date();
+let currentMesDate = new Date(); // Controla apenas o calendário do resumo mensal
+let entradasDoDia = [];
 let gastosDoDia = []; 
 
-function renderDateLabel(){
-  document.getElementById('diaLabel').textContent = currentDate.toLocaleDateString('pt-BR', { weekday:'short', day:'numeric', month:'long' });
-  document.getElementById('hojeLink').classList.toggle('show', !isSameDay(currentDate, new Date()));
-  document.getElementById('mesNomeTop').textContent = currentDate.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
-  document.getElementById('pickerData').value = toDateStr(currentDate);
-}
-document.getElementById('prevDay').addEventListener('click', () => { currentDate.setDate(currentDate.getDate()-1); refresh(); });
-document.getElementById('nextDay').addEventListener('click', () => { currentDate.setDate(currentDate.getDate()+1); refresh(); });
-document.getElementById('hojeLink').addEventListener('click', () => { currentDate = new Date(); refresh(); });
-
+// ---------- Pickers de Calendário ----------
+document.getElementById('btnPickData').addEventListener('click', () => {
+  try { document.getElementById('pickerData').showPicker(); } catch(e) { document.getElementById('pickerData').focus(); }
+});
 document.getElementById('pickerData').addEventListener('change', (e) => {
   if(e.target.value){
     const [y, m, d] = e.target.value.split('-');
     currentDate = new Date(y, m-1, d);
+    currentMesDate = new Date(y, m-1, 1); // Sincroniza o mês lá de cima também
     refresh();
   }
 });
+
+document.getElementById('btnPickMes').addEventListener('click', () => {
+  try { document.getElementById('pickerMes').showPicker(); } catch(e) { document.getElementById('pickerMes').focus(); }
+});
+document.getElementById('pickerMes').addEventListener('change', (e) => {
+  if(e.target.value){
+    const [y, m] = e.target.value.split('-');
+    currentMesDate = new Date(y, m-1, 1);
+    refreshMes(); // Atualiza SÓ a caixinha do mês, sem mudar a data do caixa
+  }
+});
+
+function renderDateLabel(){
+  document.getElementById('diaLabel').textContent = currentDate.toLocaleDateString('pt-BR', { weekday:'short', day:'numeric', month:'long' });
+  document.getElementById('hojeLink').classList.toggle('show', !isSameDay(currentDate, new Date()));
+  document.getElementById('pickerData').value = toDateStr(currentDate);
+}
+document.getElementById('prevDay').addEventListener('click', () => { currentDate.setDate(currentDate.getDate()-1); currentMesDate = new Date(currentDate); refresh(); });
+document.getElementById('nextDay').addEventListener('click', () => { currentDate.setDate(currentDate.getDate()+1); currentMesDate = new Date(currentDate); refresh(); });
+document.getElementById('hojeLink').addEventListener('click', () => { currentDate = new Date(); currentMesDate = new Date(); refresh(); });
 
 let cache = { fornecedor: [], funcionario: [], particular: [] };
 const tableFor = { fornecedor:'fornecedores', funcionario:'funcionarios', particular:'particulares' };
@@ -310,35 +338,44 @@ async function loadCache(){
   }
 }
 
-async function refresh(){
-  renderDateLabel();
-  const dateStr = toDateStr(currentDate);
-  const ano = currentDate.getFullYear();
-  const mes = String(currentDate.getMonth()+1).padStart(2,'0');
-  const lastDay = new Date(ano, currentDate.getMonth() + 1, 0).getDate();
+async function refreshMes() {
+  const ano = currentMesDate.getFullYear();
+  const mes = String(currentMesDate.getMonth()+1).padStart(2,'0');
+  const lastDay = new Date(ano, currentMesDate.getMonth() + 1, 0).getDate();
   const startMes = `${ano}-${mes}-01`;
   const endMes = `${ano}-${mes}-${lastDay}`;
+  
+  document.getElementById('mesNomeTop').textContent = currentMesDate.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
+  document.getElementById('pickerMes').value = `${ano}-${mes}`;
 
-  const [resDiaEnt, resDiaGas, resMesEnt, resMesGas] = await Promise.all([
-    db.from('entradas').select('*').eq('data', dateStr).order('created_at', { ascending:false }),
-    db.from('gastos').select('*').eq('data', dateStr).order('created_at', { ascending:false }),
+  const [resMesEnt, resMesGas] = await Promise.all([
     db.from('entradas').select('valor').gte('data', startMes).lte('data', endMes),
     db.from('gastos').select('valor').gte('data', startMes).lte('data', endMes)
   ]);
 
-  gastosDoDia = resDiaGas.data || [];
-  renderSummary(resDiaEnt.data || [], gastosDoDia);
-  renderListaEntradas(resDiaEnt.data || []);
-  renderListaGastos(gastosDoDia);
-  renderMes(resMesEnt.data || [], resMesGas.data || []);
-}
-
-function renderMes(entMes, gasMes){
-  const totE = entMes.reduce((s,x) => s + Number(x.valor), 0);
-  const totG = gasMes.reduce((s,x) => s + Number(x.valor), 0);
+  const totE = (resMesEnt.data || []).reduce((s,x) => s + Number(x.valor), 0);
+  const totG = (resMesGas.data || []).reduce((s,x) => s + Number(x.valor), 0);
   document.getElementById('mesEntradas').textContent = fmtBRL(totE);
   document.getElementById('mesSaidas').textContent = fmtBRL(totG);
   document.getElementById('mesLucro').textContent = fmtBRL(totE - totG);
+}
+
+async function refresh(){
+  renderDateLabel();
+  await refreshMes();
+  const dateStr = toDateStr(currentDate);
+
+  const [resDiaEnt, resDiaGas] = await Promise.all([
+    db.from('entradas').select('*').eq('data', dateStr).order('created_at', { ascending:false }),
+    db.from('gastos').select('*').eq('data', dateStr).order('created_at', { ascending:false })
+  ]);
+
+  entradasDoDia = resDiaEnt.data || [];
+  gastosDoDia = resDiaGas.data || [];
+  
+  renderSummary(entradasDoDia, gastosDoDia);
+  renderListaEntradas(entradasDoDia);
+  renderListaGastos(gastosDoDia);
 }
 
 const fpLabel = { dinheiro:'Dinheiro', cartao:'Cartão', ifood:'iFood', '99':'99' };
@@ -368,13 +405,20 @@ function renderListaEntradas(entradas){
       </div>
       <div class="right">
         <span class="valor">${fmtBRL(e.valor)}</span>
+        <button class="icon-btn edit" data-edit-entrada="${e.id}">✎</button>
         <button class="icon-btn" data-del-entrada="${e.id}">✕</button>
       </div>
     </div>`).join('');
+  
   el.querySelectorAll('[data-del-entrada]').forEach(btn => btn.addEventListener('click', async () => {
     if (!confirm('Excluir esta entrada?')) return;
     await db.from('entradas').delete().eq('id', btn.dataset.delEntrada);
     refresh();
+  }));
+
+  el.querySelectorAll('[data-edit-entrada]').forEach(btn => btn.addEventListener('click', () => {
+    const e = entradasDoDia.find(x => x.id === btn.dataset.editEntrada);
+    abrirModalEntrada(e);
   }));
 }
 
@@ -421,19 +465,39 @@ function setupPills(containerId, varObj, varKey){
 }
 
 // ---------- Entrada ----------
-let estEntrada = { turno:'Dia', mod:'Salão', fp:null };
+let estEntrada = { turno:'Dia', mod:'Salão', fp:null, editId:null };
 setupPills('turnoPills', estEntrada, 'turno');
 setupPills('modalidadePills', estEntrada, 'mod');
 setupPills('formaPagamentoPills', estEntrada, 'fp');
 
-document.getElementById('btnAbrirEntrada').addEventListener('click', () => {
-  estEntrada.fp = null;
-  document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
-  document.getElementById('entradaValor').value = '';
+function abrirModalEntrada(edit = null) {
+  estEntrada.editId = edit ? edit.id : null;
+  document.getElementById('tituloModalEntrada').textContent = edit ? 'Editar Entrada' : 'Dinheiro no caixa';
   document.getElementById('entradaErr').textContent = '';
+
+  if (edit) {
+    const infos = (edit.observacao || 'Dia | Salão').split(' | ');
+    estEntrada.turno = infos[0] || 'Dia';
+    estEntrada.mod = infos[1] || 'Salão';
+    estEntrada.fp = edit.forma_pagamento;
+
+    document.querySelectorAll('#turnoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.turno));
+    document.querySelectorAll('#modalidadePills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.mod));
+    document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.fp === estEntrada.fp));
+    
+    document.getElementById('entradaValor').value = (edit.valor).toFixed(2).replace('.',',');
+    mascaraMoeda({target: document.getElementById('entradaValor')});
+  } else {
+    estEntrada.fp = null;
+    document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
+    document.getElementById('entradaValor').value = '';
+  }
+
   document.getElementById('overlayEntrada').classList.add('show');
   setTimeout(() => document.getElementById('entradaValor').focus(), 100);
-});
+}
+
+document.getElementById('btnAbrirEntrada').addEventListener('click', () => abrirModalEntrada(null));
 
 document.getElementById('btnSalvarEntrada').addEventListener('click', async () => {
   const vNum = parseMoeda(document.getElementById('entradaValor').value);
@@ -442,13 +506,20 @@ document.getElementById('btnSalvarEntrada').addEventListener('click', async () =
   if (!vNum || vNum <= 0) { err.textContent = 'Informe um valor válido.'; return; }
   
   err.textContent = 'Salvando...';
-  await db.from('entradas').insert({
+  const payload = {
     data: toDateStr(currentDate),
     forma_pagamento: estEntrada.fp,
     valor: vNum,
-    observacao: `${estEntrada.turno} | ${estEntrada.mod}`,
-    created_by: currentUser?.id
-  });
+    observacao: `${estEntrada.turno} | ${estEntrada.mod}`
+  };
+
+  if (estEntrada.editId) {
+    await db.from('entradas').update(payload).eq('id', estEntrada.editId);
+  } else {
+    payload.created_by = currentUser?.id;
+    await db.from('entradas').insert(payload);
+  }
+
   document.getElementById('overlayEntrada').classList.remove('show');
   refresh();
 });
@@ -481,7 +552,7 @@ function abrirModalGasto(gastoEdit = null) {
 
   if (gastoEdit) {
     document.getElementById('gastoValor').value = (gastoEdit.valor).toFixed(2).replace('.',',');
-    mascaraMoeda({target: document.getElementById('gastoValor')}); // formata certinho
+    mascaraMoeda({target: document.getElementById('gastoValor')});
     if(catToSelect === 'outros') document.getElementById('gastoDescricao').value = gastoEdit.descricao || '';
     else document.getElementById('gastoSelect').value = gastoEdit[`${catToSelect}_id`];
   } else {
@@ -553,7 +624,7 @@ document.getElementById('btnGerenciarAdicionar').addEventListener('click', async
   await loadCache(); renderGerenciarLista(); if (estGasto.cat === gerenciarCatAtual) populateSelect(gerenciarCatAtual);
 });
 
-// ---------- Teclas de Atalho (Enter/Esc) ----------
+// ---------- Teclas de Atalho ----------
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') document.querySelectorAll('.overlay').forEach(ov => ov.classList.remove('show'));
 });
@@ -565,7 +636,6 @@ addEnter('gastoValor', 'btnSalvarGasto');
 addEnter('gastoDescricao', 'btnSalvarGasto');
 addEnter('gerenciarNovoNome', 'btnGerenciarAdicionar');
 
-// Fechar modals clicando fora
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('show')));
 document.querySelectorAll('.overlay').forEach(ov => ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('show'); }));
 
