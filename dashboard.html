@@ -94,7 +94,6 @@
   .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px; }
   .section-header h2{font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--olive); margin:0;}
   
-  /* Filtros clicáveis */
   .filter-pills { display:flex; gap:6px; flex-wrap:wrap; }
   .filter-pills button { background:#fff; border:1px solid var(--line); padding:4px 10px; border-radius:12px; font-size:0.72rem; cursor:pointer; color:var(--ink); font-weight:500; transition:all 0.15s; }
   .filter-pills button.active { background:var(--pine); border-color:var(--pine); color:#fff; }
@@ -121,7 +120,7 @@
   .pillbtn.active{border-color:var(--pine); background:var(--pine); color:#fff;}
   
   label{display:block; font-size:0.78rem; font-weight:500; color:var(--olive); margin:14px 0 6px;}
-  input[type=text], select{width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:5px; font-family:inherit; font-size:0.95rem; background:#fff; color:var(--ink);}
+  input[type=number], input[type=text], select{width:100%; padding:11px 12px; border:1px solid var(--line); border-radius:5px; font-family:inherit; font-size:0.95rem; background:#fff; color:var(--ink);}
   input:focus, select:focus{outline:none; border-color:var(--wine);}
   .select-row{display:flex; gap:8px; align-items:center;}
   .select-row select{flex:1;}
@@ -169,9 +168,7 @@
   </div>
 
   <div class="mini-history-wrap">
-    <div class="mini-history" id="miniHistory">
-      <!-- Bolinhas injetadas via JS -->
-    </div>
+    <div class="mini-history" id="miniHistory"></div>
   </div>
 
   <div class="date-nav">
@@ -279,6 +276,10 @@
       <button class="pillbtn" data-fp="cartao">Cartão</button>
       <button class="pillbtn" data-fp="ifood">iFood</button>
       <button class="pillbtn" data-fp="99">99</button>
+    </div>
+    <div id="entradaQtdWrap">
+      <label>Quantidade (opcional)</label>
+      <input type="number" id="entradaQtd" min="1" placeholder="Ex: 5 (pedidos, mesas...)">
     </div>
     <div id="entradaObsWrap" style="display:none;">
       <label>Observação Exclusiva</label>
@@ -433,11 +434,7 @@ async function refreshContexto(){
   document.getElementById('selMovimento').value = data?.movimento || '';
 }
 async function saveContexto(){
-  await db.from('contexto_diario').upsert({
-    data: toDateStr(currentDate),
-    clima: document.getElementById('selClima').value,
-    movimento: document.getElementById('selMovimento').value
-  });
+  await db.from('contexto_diario').upsert({ data: toDateStr(currentDate), clima: document.getElementById('selClima').value, movimento: document.getElementById('selMovimento').value });
 }
 document.getElementById('selClima').addEventListener('change', saveContexto);
 document.getElementById('selMovimento').addEventListener('change', saveContexto);
@@ -493,9 +490,7 @@ async function refresh(){
     db.from('gastos').select('*').eq('data', dateStr).order('created_at', { ascending:false })
   ]);
   entradasDoDia = resDiaEnt.data || []; gastosDoDia = resDiaGas.data || [];
-  renderSummary(entradasDoDia, gastosDoDia); 
-  renderListaEntradas(); 
-  renderListaGastos();
+  renderSummary(entradasDoDia, gastosDoDia); renderListaEntradas(); renderListaGastos();
 }
 
 const fpLabel = { dinheiro:'Dinheiro', cartao:'Cartão', ifood:'iFood', '99':'99' };
@@ -557,7 +552,6 @@ function renderListaGastos(){
   const filtradas = gastosDoDia.filter(g => {
     if(filtroGastoAtual === 'todos') return true;
     if(filtroGastoAtual === 'sangria') return g.descricao && g.descricao.startsWith('Sangria');
-    // Para as outras categorias, garantir que não mostre Sangria dentro de "Outros" quando filtrado
     if(filtroGastoAtual === 'outros') return g.categoria === 'outros' && !(g.descricao && g.descricao.startsWith('Sangria'));
     return g.categoria === filtroGastoAtual;
   });
@@ -602,10 +596,12 @@ function abrirModalEntrada(edit = null, isTroco = false) {
 
   const pillBoxes = ['turnoPills', 'modalidadePills'];
   const obsWrap = document.getElementById('entradaObsWrap');
+  const qtdWrap = document.getElementById('entradaQtdWrap');
 
   if (estEntrada.isTroco) {
     pillBoxes.forEach(id => document.getElementById(id).style.display = 'none');
     obsWrap.style.display = 'block'; document.getElementById('entradaObservacao').value = 'Iniciar Caixa';
+    qtdWrap.style.display = 'none';
     estEntrada.fp = 'dinheiro';
     document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => {
       b.classList.toggle('active', b.dataset.fp === 'dinheiro');
@@ -613,15 +609,19 @@ function abrirModalEntrada(edit = null, isTroco = false) {
     });
   } else {
     pillBoxes.forEach(id => document.getElementById(id).style.display = 'flex'); obsWrap.style.display = 'none';
+    qtdWrap.style.display = 'block';
     document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => { b.style.pointerEvents = 'auto'; b.style.opacity = '1'; });
     if (edit) {
       const infos = (edit.observacao || 'Dia | Salão').split(' | ');
       estEntrada.turno = infos[0] || 'Dia'; estEntrada.mod = infos[1] || 'Salão'; estEntrada.fp = edit.forma_pagamento;
+      if (infos[2]) document.getElementById('entradaQtd').value = infos[2].replace(/\D/g, ''); else document.getElementById('entradaQtd').value = '';
+
       document.querySelectorAll('#turnoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.turno));
       document.querySelectorAll('#modalidadePills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.mod));
       document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.fp === estEntrada.fp));
     } else {
       estEntrada.fp = null; document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
+      document.getElementById('entradaQtd').value = '';
     }
   }
   document.getElementById('entradaValor').value = edit ? (edit.valor).toFixed(2).replace('.',',') : '';
@@ -633,10 +633,15 @@ document.getElementById('btnTroco').addEventListener('click', () => abrirModalEn
 
 document.getElementById('btnSalvarEntrada').addEventListener('click', async () => {
   const vNum = parseMoeda(document.getElementById('entradaValor').value); const err = document.getElementById('entradaErr');
+  const qtd = document.getElementById('entradaQtd').value.trim();
   if (!estEntrada.fp) { err.textContent = 'Escolha a forma de pagamento.'; return; }
   if (!vNum || vNum <= 0) { err.textContent = 'Informe um valor válido.'; return; }
   err.textContent = 'Salvando...';
-  const payload = { data: toDateStr(currentDate), forma_pagamento: estEntrada.fp, valor: vNum, observacao: estEntrada.isTroco ? 'Iniciar Caixa' : `${estEntrada.turno} | ${estEntrada.mod}` };
+
+  let obsFinal = estEntrada.isTroco ? 'Iniciar Caixa' : `${estEntrada.turno} | ${estEntrada.mod}`;
+  if (!estEntrada.isTroco && qtd) obsFinal += ` | ${qtd} unid.`;
+
+  const payload = { data: toDateStr(currentDate), forma_pagamento: estEntrada.fp, valor: vNum, observacao: obsFinal };
   if (estEntrada.editId) await db.from('entradas').update(payload).eq('id', estEntrada.editId);
   else { payload.created_by = currentUser?.id; await db.from('entradas').insert(payload); }
   document.getElementById('overlayEntrada').classList.remove('show'); refresh();
@@ -673,8 +678,7 @@ function abrirModalGasto(gastoEdit = null, isSangria = false) {
   if (gastoEdit) {
     document.getElementById('gastoValor').value = (gastoEdit.valor).toFixed(2).replace('.',','); mascaraMoeda({target: document.getElementById('gastoValor')});
     if(estGasto.isSangria) {
-      const parts = gastoEdit.descricao.split(' | ');
-      document.getElementById('gastoObservacao').value = parts[1] || '';
+      const parts = gastoEdit.descricao.split(' | '); document.getElementById('gastoObservacao').value = parts[1] || '';
     } else {
       if(catToSelect === 'outros') document.getElementById('gastoDescricao').value = gastoEdit.descricao || '';
       else document.getElementById('gastoSelect').value = gastoEdit[`${catToSelect}_id`];
@@ -757,7 +761,7 @@ document.getElementById('btnGerenciarAdicionar').addEventListener('click', async
 // ---------- Teclas de Atalho ----------
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.overlay').forEach(ov => ov.classList.remove('show')); });
 function addEnter(idInput, idBtn) { document.getElementById(idInput).addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); document.getElementById(idBtn).click(); }}); }
-addEnter('entradaValor', 'btnSalvarEntrada'); addEnter('gastoValor', 'btnSalvarGasto'); addEnter('gastoDescricao', 'btnSalvarGasto'); addEnter('gastoObservacao', 'btnSalvarGasto'); addEnter('gerenciarNovoNome', 'btnGerenciarAdicionar');
+addEnter('entradaValor', 'btnSalvarEntrada'); addEnter('entradaQtd', 'btnSalvarEntrada'); addEnter('gastoValor', 'btnSalvarGasto'); addEnter('gastoDescricao', 'btnSalvarGasto'); addEnter('gastoObservacao', 'btnSalvarGasto'); addEnter('gerenciarNovoNome', 'btnGerenciarAdicionar');
 
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('show')));
 document.querySelectorAll('.overlay').forEach(ov => ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('show'); }));
