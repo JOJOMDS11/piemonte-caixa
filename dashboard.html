@@ -302,12 +302,8 @@
       <button class="pillbtn" data-fp="99">99</button>
     </div>
     <div id="entradaQtdWrap">
-      <label>Quantidade (opcional)</label>
-      <input type="number" id="entradaQtd" min="1" placeholder="Ex: 5">
-    </div>
-    <div id="entradaIdentWrap" style="display:none;">
-      <label>Convênio / Cliente (opcional)</label>
-      <input type="text" id="entradaIdentificacao" placeholder="Ex: Ticket, Sodexo, João...">
+      <label>Quantidade Total (opcional)</label>
+      <input type="number" id="entradaQtd" min="1" placeholder="Ex: Total de mesas ou pedidos">
     </div>
     <div id="entradaObsWrap" style="display:none;">
       <label>Observação Exclusiva</label>
@@ -611,7 +607,6 @@ function renderListaEntradas(){
   el.querySelectorAll('[data-del-entrada]').forEach(btn => btn.addEventListener('click', async () => { if (!confirm('Excluir?')) return; await db.from('entradas').delete().eq('id', btn.dataset.delEntrada); refresh(); }));
   el.querySelectorAll('[data-edit-entrada]').forEach(btn => btn.addEventListener('click', () => abrirModalEntrada(entradasDoDia.find(x => x.id === btn.dataset.editEntrada))));
 
-  // Renderiza controles de paginação
   if (mostrarTodosEntradas || filtradas.length <= itensPorPagina) {
     pagWrap.innerHTML = filtradas.length > itensPorPagina ? `<div style="width:100%; text-align:center;"><button class="pag-all-btn" id="btnMenosEntradas">Mostrar páginas</button></div>` : '';
     if(document.getElementById('btnMenosEntradas')) document.getElementById('btnMenosEntradas').addEventListener('click', () => { mostrarTodosEntradas = false; paginaEntradas = 1; renderListaEntradas(); });
@@ -675,7 +670,6 @@ function renderListaGastos(){
   el.querySelectorAll('[data-del-gasto]').forEach(btn => btn.addEventListener('click', async () => { if (!confirm('Excluir?')) return; await db.from('gastos').delete().eq('id', btn.dataset.delGasto); refresh(); }));
   el.querySelectorAll('[data-edit-gasto]').forEach(btn => btn.addEventListener('click', () => abrirModalGasto(gastosDoDia.find(x => x.id === btn.dataset.editGasto))));
 
-  // Renderiza controles de paginação
   if (mostrarTodosGastos || filtradas.length <= itensPorPagina) {
     pagWrap.innerHTML = filtradas.length > itensPorPagina ? `<div style="width:100%; text-align:center;"><button class="pag-all-btn" id="btnMenosGastos">Mostrar páginas</button></div>` : '';
     if(document.getElementById('btnMenosGastos')) document.getElementById('btnMenosGastos').addEventListener('click', () => { mostrarTodosGastos = false; paginaGastos = 1; renderListaGastos(); });
@@ -695,7 +689,6 @@ function renderListaGastos(){
   }
 }
 
-// Modificado para passar a chave da propriedade sendo alterada
 function setupPills(containerId, varObj, varKey){
   document.getElementById(containerId).addEventListener('click', (e) => {
     const btn = e.target.closest('.pillbtn'); if (!btn) return;
@@ -709,7 +702,6 @@ function setupPills(containerId, varObj, varKey){
 let estEntrada = { 
   turno:'Dia', mod:'Salão', fp:null, editId:null, isTroco: false,
   onChange: (val, key) => {
-    // Automação: se escolheu iFood ou 99, marca automaticamente a modalidade como Tele
     if (key === 'fp' && (val === 'ifood' || val === '99')) {
       estEntrada.mod = 'Tele';
       document.querySelectorAll('#modalidadePills .pillbtn').forEach(b => {
@@ -730,12 +722,11 @@ function abrirModalEntrada(edit = null, isTroco = false) {
   const pillBoxes = ['turnoPills', 'modalidadePills'];
   const obsWrap = document.getElementById('entradaObsWrap');
   const qtdWrap = document.getElementById('entradaQtdWrap');
-  const identWrap = document.getElementById('entradaIdentWrap');
 
   if (estEntrada.isTroco) {
     pillBoxes.forEach(id => document.getElementById(id).style.display = 'none');
     obsWrap.style.display = 'block'; document.getElementById('entradaObservacao').value = 'Iniciar Caixa';
-    qtdWrap.style.display = 'none'; identWrap.style.display = 'none';
+    qtdWrap.style.display = 'none'; 
     estEntrada.fp = 'dinheiro';
     document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => {
       b.classList.toggle('active', b.dataset.fp === 'dinheiro');
@@ -744,7 +735,7 @@ function abrirModalEntrada(edit = null, isTroco = false) {
   } else {
     pillBoxes.forEach(id => document.getElementById(id).style.display = 'flex'); 
     obsWrap.style.display = 'none';
-    qtdWrap.style.display = 'block'; identWrap.style.display = 'block';
+    qtdWrap.style.display = 'block'; 
     
     document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => { b.style.pointerEvents = 'auto'; b.style.opacity = '1'; });
     
@@ -753,16 +744,12 @@ function abrirModalEntrada(edit = null, isTroco = false) {
       estEntrada.turno = infos[0] || 'Dia'; estEntrada.mod = infos[1] || 'Salão'; estEntrada.fp = edit.forma_pagamento;
       
       let qtdVal = '';
-      let identVal = '';
       for(let i=2; i<infos.length; i++){
         if(infos[i].includes('mesas') || infos[i].includes('pedidos')){
           qtdVal = infos[i].replace(/\D/g, '');
-        } else {
-          identVal = infos[i];
         }
       }
       document.getElementById('entradaQtd').value = qtdVal;
-      document.getElementById('entradaIdentificacao').value = identVal;
 
       document.querySelectorAll('#turnoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.turno));
       document.querySelectorAll('#modalidadePills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.mod));
@@ -770,7 +757,6 @@ function abrirModalEntrada(edit = null, isTroco = false) {
     } else {
       estEntrada.fp = null; document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
       document.getElementById('entradaQtd').value = '';
-      document.getElementById('entradaIdentificacao').value = '';
     }
   }
   document.getElementById('entradaValor').value = edit ? (edit.valor).toFixed(2).replace('.',',') : '';
@@ -783,7 +769,6 @@ document.getElementById('btnTroco').addEventListener('click', () => abrirModalEn
 document.getElementById('btnSalvarEntrada').addEventListener('click', async () => {
   const vNum = parseMoeda(document.getElementById('entradaValor').value); const err = document.getElementById('entradaErr');
   const qtd = document.getElementById('entradaQtd').value.trim();
-  const ident = document.getElementById('entradaIdentificacao').value.trim();
   
   if (!estEntrada.fp) { err.textContent = 'Escolha a forma de pagamento.'; return; }
   if (!vNum || vNum <= 0) { err.textContent = 'Informe um valor válido.'; return; }
@@ -791,14 +776,9 @@ document.getElementById('btnSalvarEntrada').addEventListener('click', async () =
 
   let obsFinal = estEntrada.isTroco ? 'Iniciar Caixa' : `${estEntrada.turno} | ${estEntrada.mod}`;
   
-  if (!estEntrada.isTroco) {
-    if (qtd) {
-      const labelQtd = estEntrada.mod === 'Salão' ? 'mesas' : 'pedidos';
-      obsFinal += ` | ${qtd} ${labelQtd}`;
-    }
-    if (ident) {
-      obsFinal += ` | ${ident}`;
-    }
+  if (!estEntrada.isTroco && qtd) {
+    const labelQtd = estEntrada.mod === 'Salão' ? 'mesas' : 'pedidos';
+    obsFinal += ` | ${qtd} ${labelQtd}`;
   }
 
   const payload = { data: toDateStr(currentDate), forma_pagamento: estEntrada.fp, valor: vNum, observacao: obsFinal };
@@ -921,7 +901,7 @@ document.getElementById('btnGerenciarAdicionar').addEventListener('click', async
 // ---------- Teclas de Atalho ----------
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.overlay').forEach(ov => ov.classList.remove('show')); });
 function addEnter(idInput, idBtn) { document.getElementById(idInput).addEventListener('keydown', (e) => { if(e.key === 'Enter') { e.preventDefault(); document.getElementById(idBtn).click(); }}); }
-addEnter('entradaValor', 'btnSalvarEntrada'); addEnter('entradaQtd', 'btnSalvarEntrada'); addEnter('entradaIdentificacao', 'btnSalvarEntrada'); addEnter('gastoValor', 'btnSalvarGasto'); addEnter('gastoDescricao', 'btnSalvarGasto'); addEnter('gastoObservacao', 'btnSalvarGasto'); addEnter('gerenciarNovoNome', 'btnGerenciarAdicionar');
+addEnter('entradaValor', 'btnSalvarEntrada'); addEnter('entradaQtd', 'btnSalvarEntrada'); addEnter('gastoValor', 'btnSalvarGasto'); addEnter('gastoDescricao', 'btnSalvarGasto'); addEnter('gastoObservacao', 'btnSalvarGasto'); addEnter('gerenciarNovoNome', 'btnGerenciarAdicionar');
 
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('show')));
 document.querySelectorAll('.overlay').forEach(ov => ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('show'); }));
