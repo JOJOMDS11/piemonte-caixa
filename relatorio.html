@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piemonte · Relatórios</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<!-- Supabase -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<!-- Chart.js para Gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- SheetJS para Exportar Excel -->
+<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+<style>
+  :root{
+    --pine:#1E2A20; --pine-deep:#152018; --paper:#FAF7F1; --paper-dim:#F1ECE1;
+    --ink:#24261F; --wine:#8C3B2E; --olive:#5E6B45; --gold:#C79A3B; --line:#E4DFD3;
+    --green-ok:#3F6B44; --blue-info:#2A4B5C;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0; background:var(--paper-dim); color:var(--ink); font-family:'Inter',sans-serif;}
+  
+  header{background:var(--pine); color:#fff; padding:16px 20px; display:flex; align-items:center; justify-content:space-between;}
+  header h1{font-family:'Fraunces',serif; font-weight:600; font-size:1.3rem; margin:0;}
+  .header-actions{display:flex; gap:10px;}
+  .header-actions button{background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.35); color:#fff; padding:7px 14px; border-radius:3px; font-family:inherit; font-size:0.8rem; cursor:pointer;}
+  .header-actions button:hover{background:rgba(255,255,255,0.2);}
+  .btn-voltar{background:transparent !important; border-color:transparent !important; color:var(--gold) !important;}
+
+  main{max-width:1000px; margin:0 auto; padding:24px 16px; padding-bottom:80px;}
+
+  /* Controles de Filtro */
+  .filters{background:#fff; border:1px solid var(--line); border-radius:6px; padding:16px; margin-bottom:24px; display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;}
+  .filter-group{display:flex; flex-direction:column; gap:6px; flex:1; min-width:200px;}
+  .filter-group label{font-size:0.75rem; text-transform:uppercase; color:var(--olive); font-weight:600;}
+  .filter-group input{padding:10px; border:1px solid var(--line); border-radius:4px; font-family:inherit;}
+  .btn-gerar{background:var(--pine); color:#fff; border:none; padding:11px 20px; border-radius:4px; font-weight:600; cursor:pointer;}
+  .btn-gerar:hover{background:var(--pine-deep);}
+  .export-btns{display:flex; gap:8px;}
+  .btn-export{background:#fff; border:1px solid var(--line); padding:10px 14px; border-radius:4px; font-weight:600; cursor:pointer; font-size:0.85rem;}
+  .btn-export:hover{background:var(--paper-dim);}
+
+  /* KPIs */
+  .kpi-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;}
+  .kpi-card{background:#fff; border:1px solid var(--line); border-radius:6px; padding:20px; text-align:center;}
+  .kpi-card .label{font-size:0.75rem; text-transform:uppercase; color:var(--olive); font-weight:600; margin-bottom:8px;}
+  .kpi-card .value{font-family:'Fraunces',serif; font-size:1.8rem; font-weight:600;}
+  .kpi-card.positivo .value{color:var(--green-ok);}
+  .kpi-card.negativo .value{color:var(--wine);}
+
+  /* Gráficos */
+  .charts-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(400px, 1fr)); gap:20px;}
+  .chart-container{background:#fff; border:1px solid var(--line); border-radius:6px; padding:20px;}
+  .chart-container h3{font-size:1rem; margin:0 0 16px; color:var(--pine); font-family:'Fraunces',serif;}
+  .canvas-wrapper{position:relative; height:300px; width:100%;}
+
+  @media print {
+    .filters, header button { display: none !important; }
+    body { background: #fff; }
+    .chart-container { break-inside: avoid; border: none; box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Piemonte · Analytics</h1>
+  <div class="header-actions">
+    <button class="btn-voltar" onclick="window.location.href='dashboard.html'">‹ Voltar ao Caixa</button>
+    <button id="btnLogout">Sair</button>
+  </div>
+</header>
+
+<main>
+  <div class="filters">
+    <div class="filter-group">
+      <label>Data Inicial</label>
+      <input type="date" id="dataInicio">
+    </div>
+    <div class="filter-group">
+      <label>Data Final</label>
+      <input type="date" id="dataFim">
+    </div>
+    <button class="btn-gerar" id="btnFiltrar">Atualizar Dados</button>
+    
+    <div class="export-btns">
+      <button class="btn-export" id="btnPdf">📄 PDF</button>
+      <button class="btn-export" id="btnExcel">📊 Excel</button>
+    </div>
+  </div>
+
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="label">Receita Bruta</div>
+      <div class="value" id="kpiReceita">R$ 0,00</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Gastos Operacionais</div>
+      <div class="value negativo" id="kpiGastos">R$ 0,00</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Lucro Líquido</div>
+      <div class="value" id="kpiLucro">R$ 0,00</div>
+    </div>
+    <div class="kpi-card">
+      <div class="label">Ticket Médio (Est.)</div>
+      <div class="value" id="kpiTicket">R$ 0,00</div>
+    </div>
+  </div>
+
+  <div class="charts-grid">
+    <div class="chart-container" style="grid-column: 1 / -1;">
+      <h3>Receitas vs Gastos (Linha do Tempo)</h3>
+      <div class="canvas-wrapper">
+        <canvas id="chartFluxo"></canvas>
+      </div>
+    </div>
+    
+    <div class="chart-container">
+      <h3>Origem da Receita</h3>
+      <div class="canvas-wrapper">
+        <canvas id="chartOrigem"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <h3>Distribuição de Gastos</h3>
+      <div class="canvas-wrapper">
+        <canvas id="chartDespesas"></canvas>
+      </div>
+    </div>
+
+    <div class="chart-container" style="grid-column: 1 / -1;">
+      <h3>Análise de Contexto (Vendas por Clima)</h3>
+      <div class="canvas-wrapper" style="height: 250px;">
+        <canvas id="chartContexto"></canvas>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// ---------- Autenticação ----------
+(async () => {
+  const { data } = await db.auth.getSession();
+  if (!data.session) window.location.href = 'index.html';
+})();
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  await db.auth.signOut(); window.location.href = 'index.html';
+});
+
+// ---------- Formatação ----------
+const fmtBRL = (n) => (n || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+const toDateStr = (d) => { const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
+
+// Datas padrão (Mês atual)
+const hoje = new Date();
+const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+document.getElementById('dataInicio').value = toDateStr(primeiroDiaMes);
+document.getElementById('dataFim').value = toDateStr(hoje);
+
+// Variáveis globais para os gráficos
+let chartFluxoObj, chartOrigemObj, chartDespesasObj, chartContextoObj;
+let rawEntradas = [], rawGastos = [], rawContexto = [];
+
+// ---------- Motor Analítico ----------
+async function carregarDados() {
+  const dataIni = document.getElementById('dataInicio').value;
+  const dataFim = document.getElementById('dataFim').value;
+
+  // Busca paralela no Big Data do Supabase
+  const [resEntradas, resGastos, resContexto] = await Promise.all([
+    db.from('entradas').select('*').gte('data', dataIni).lte('data', dataFim).order('data'),
+    db.from('gastos').select('*').gte('data', dataIni).lte('data', dataFim).order('data'),
+    db.from('contexto_diario').select('*').gte('data', dataIni).lte('data', dataFim)
+  ]);
+
+  // Filtra operações de cofre para não sujar o DRE
+  rawEntradas = (resEntradas.data || []).filter(e => e.observacao !== 'Iniciar Caixa');
+  rawGastos = (resGastos.data || []).filter(g => !(g.descricao && g.descricao.startsWith('Sangria')));
+  rawContexto = resContexto.data || [];
+
+  processarKPIs();
+  renderizarGraficos();
+}
+
+function processarKPIs() {
+  let receita = 0, qtdTotal = 0, despesa = 0;
+
+  rawEntradas.forEach(e => {
+    receita += Number(e.valor);
+    // Tenta extrair a quantidade se existir na observação (ex: "Dia | Salão | 4 unid.")
+    if(e.observacao && e.observacao.includes('unid.')){
+      const match = e.observacao.match(/\|\s*(\d+)\s*unid\./);
+      if(match) qtdTotal += parseInt(match[1]);
+    }
+  });
+
+  rawGastos.forEach(g => despesa += Number(g.valor));
+
+  const lucro = receita - despesa;
+  const ticket = qtdTotal > 0 ? (receita / qtdTotal) : 0;
+
+  document.getElementById('kpiReceita').textContent = fmtBRL(receita);
+  document.getElementById('kpiGastos').textContent = fmtBRL(despesa);
+  
+  const elLucro = document.getElementById('kpiLucro');
+  elLucro.textContent = fmtBRL(lucro);
+  elLucro.parentElement.classList.toggle('positivo', lucro >= 0);
+  elLucro.parentElement.classList.toggle('negativo', lucro < 0);
+
+  document.getElementById('kpiTicket').textContent = fmtBRL(ticket);
+}
+
+function renderizarGraficos() {
+  // Cores da Identidade Visual
+  const cPine = '#1E2A20', cWine = '#8C3B2E', cGold = '#C79A3B', cOlive = '#5E6B45', cBlue = '#2A4B5C';
+
+  // 1. Fluxo (Timeline)
+  const mapFluxo = {};
+  rawEntradas.forEach(e => { if(!mapFluxo[e.data]) mapFluxo[e.data] = {r:0, g:0}; mapFluxo[e.data].r += Number(e.valor); });
+  rawGastos.forEach(g => { if(!mapFluxo[g.data]) mapFluxo[g.data] = {r:0, g:0}; mapFluxo[g.data].g += Number(g.valor); });
+  
+  const labelsEixoX = Object.keys(mapFluxo).sort();
+  const dataReceita = labelsEixoX.map(d => mapFluxo[d].r);
+  const dataGasto = labelsEixoX.map(d => mapFluxo[d].g);
+
+  if(chartFluxoObj) chartFluxoObj.destroy();
+  chartFluxoObj = new Chart(document.getElementById('chartFluxo'), {
+    type: 'line',
+    data: {
+      labels: labelsEixoX.map(d => d.split('-').reverse().slice(0,2).join('/')),
+      datasets: [
+        { label: 'Receita', data: dataReceita, borderColor: cPine, backgroundColor: cPine, tension: 0.3 },
+        { label: 'Gastos', data: dataGasto, borderColor: cWine, backgroundColor: cWine, tension: 0.3 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // 2. Origem da Receita (Salão vs Tele)
+  let valSalao = 0, valTele = 0;
+  rawEntradas.forEach(e => {
+    if(e.observacao && e.observacao.includes('Salão')) valSalao += Number(e.valor);
+    else if(e.observacao && e.observacao.includes('Tele')) valTele += Number(e.valor);
+  });
+
+  if(chartOrigemObj) chartOrigemObj.destroy();
+  chartOrigemObj = new Chart(document.getElementById('chartOrigem'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Salão', 'Tele-entrega'],
+      datasets: [{ data: [valSalao, valTele], backgroundColor: [cPine, cGold] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // 3. Distribuição de Gastos
+  const catGastos = {};
+  rawGastos.forEach(g => {
+    const cat = g.categoria.toUpperCase();
+    catGastos[cat] = (catGastos[cat] || 0) + Number(g.valor);
+  });
+
+  if(chartDespesasObj) chartDespesasObj.destroy();
+  chartDespesasObj = new Chart(document.getElementById('chartDespesas'), {
+    type: 'pie',
+    data: {
+      labels: Object.keys(catGastos),
+      datasets: [{ data: Object.values(catGastos), backgroundColor: [cWine, cOlive, cBlue, cGold] }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+
+  // 4. Receita por Clima (Cruzamento de Dados)
+  const mapClima = {};
+  rawContexto.forEach(c => { if(c.clima) mapClima[c.data] = c.clima; });
+  
+  const aggClima = {};
+  rawEntradas.forEach(e => {
+    const clima = mapClima[e.data] || 'Não Informado';
+    aggClima[clima] = (aggClima[clima] || 0) + Number(e.valor);
+  });
+
+  if(chartContextoObj) chartContextoObj.destroy();
+  chartContextoObj = new Chart(document.getElementById('chartContexto'), {
+    type: 'bar',
+    data: {
+      labels: Object.keys(aggClima),
+      datasets: [{ label: 'Faturamento por Clima', data: Object.values(aggClima), backgroundColor: cBlue }]
+    },
+    options: { responsive: true, maintainAspectRatio: false }
+  });
+}
+
+// ---------- Exportações ----------
+
+// Exportar para PDF (Usa a janela de impressão nativa formatada via CSS)
+document.getElementById('btnPdf').addEventListener('click', () => {
+  window.print();
+});
+
+// Exportar para Excel (Cruza todos os dados em abas diferentes)
+document.getElementById('btnExcel').addEventListener('click', () => {
+  const wb = XLSX.utils.book_new();
+
+  // Tratamento da aba Entradas
+  const entradasPlanilha = rawEntradas.map(e => ({
+    Data: e.data,
+    Pagamento: e.forma_pagamento.toUpperCase(),
+    Detalhes: e.observacao,
+    Valor: Number(e.valor)
+  }));
+  const wsEntradas = XLSX.utils.json_to_sheet(entradasPlanilha);
+  XLSX.utils.book_append_sheet(wb, wsEntradas, "Receitas");
+
+  // Tratamento da aba Gastos
+  const gastosPlanilha = rawGastos.map(g => ({
+    Data: g.data,
+    Categoria: g.categoria.toUpperCase(),
+    Descricao: g.descricao || '',
+    Valor: Number(g.valor)
+  }));
+  const wsGastos = XLSX.utils.json_to_sheet(gastosPlanilha);
+  XLSX.utils.book_append_sheet(wb, wsGastos, "Despesas");
+
+  // Salva o arquivo
+  XLSX.writeFile(wb, `Piemonte_Relatorio_${document.getElementById('dataInicio').value}_a_${document.getElementById('dataFim').value}.xlsx`);
+});
+
+// Inicialização
+document.getElementById('btnFiltrar').addEventListener('click', carregarDados);
+carregarDados();
+
+</script>
+</body>
+</html>
