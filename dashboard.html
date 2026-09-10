@@ -52,7 +52,7 @@
   .mh-tooltip::after { content:''; position:absolute; top:100%; left:50%; margin-left:-4px; border-width:4px; border-style:solid; border-color:var(--pine-deep) transparent transparent transparent; }
   .mh-dot:hover .mh-tooltip { opacity:1; }
 
-  .date-nav{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:20px; position:relative;}
+  .date-nav{display:flex; align-items:center; justify-content:center; gap:14px; margin-bottom:12px; position:relative;}
   .date-nav button.nav-btn{background:#fff; border:1px solid var(--line); width:36px; height:36px; border-radius:50%; font-size:1rem; cursor:pointer; color:var(--pine);}
   .date-nav button.nav-btn:hover{background:#fff;}
   .date-label{text-align:center; min-width:220px; position:relative;}
@@ -64,6 +64,11 @@
   .date-label .hoje-link{display:none; font-size:0.75rem; color:var(--wine); cursor:pointer; margin-top:2px;}
   .date-label .hoje-link.show{display:block;}
   .hidden-picker { position:absolute; opacity:0; width:0; height:0; border:none; pointer-events:none; }
+
+  /* Contexto (Clima / Movimento) */
+  .context-bar { display:flex; justify-content:center; gap:10px; margin-bottom:24px; }
+  .context-bar select { width:auto; padding:6px 12px; font-size:0.8rem; border-radius:20px; background:#fff; border:1px solid var(--line); cursor:pointer; color:var(--ink); font-weight:500; }
+  .context-bar select:focus { border-color:var(--gold); outline:none; }
 
   .summary{display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:22px;}
   .sum-card{background:#fff; border:1px solid var(--line); border-radius:4px; padding:14px 16px;}
@@ -86,7 +91,14 @@
   .action-btn.sangria{background:#4A4138;}
 
   section.list-section{margin-bottom:24px;}
-  section.list-section h2{font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--olive); margin:0 0 10px;}
+  .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px; }
+  .section-header h2{font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--olive); margin:0;}
+  
+  /* Filtros clicáveis */
+  .filter-pills { display:flex; gap:6px; flex-wrap:wrap; }
+  .filter-pills button { background:#fff; border:1px solid var(--line); padding:4px 10px; border-radius:12px; font-size:0.72rem; cursor:pointer; color:var(--ink); font-weight:500; transition:all 0.15s; }
+  .filter-pills button.active { background:var(--pine); border-color:var(--pine); color:#fff; }
+
   .row-item{background:#fff; border:1px solid var(--line); border-radius:4px; padding:12px 14px; display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;}
   .row-item .desc{font-size:0.9rem; flex:1;}
   .row-item .desc .tag{display:inline-block; font-size:0.65rem; text-transform:uppercase; letter-spacing:0.03em; color:var(--olive); margin-right:6px; background:#F1ECE1; padding:2px 6px; border-radius:3px;}
@@ -158,7 +170,7 @@
 
   <div class="mini-history-wrap">
     <div class="mini-history" id="miniHistory">
-      <!-- 7 bolinhas geradas aqui -->
+      <!-- Bolinhas injetadas via JS -->
     </div>
   </div>
 
@@ -173,6 +185,22 @@
       <div class="hoje-link" id="hojeLink">voltar para hoje</div>
     </div>
     <button class="nav-btn" id="nextDay">›</button>
+  </div>
+
+  <div class="context-bar">
+    <select id="selClima">
+      <option value="">☁️ Clima...</option>
+      <option value="Chuva">🌧️ Chuva</option>
+      <option value="Frio">❄️ Frio</option>
+      <option value="Quente">☀️ Quente</option>
+      <option value="Agradável">⛅ Agradável</option>
+    </select>
+    <select id="selMovimento">
+      <option value="">👥 Movimento...</option>
+      <option value="Fraco">Fraco</option>
+      <option value="Normal">Normal</option>
+      <option value="Intenso">Intenso</option>
+    </select>
   </div>
 
   <div class="summary">
@@ -197,22 +225,41 @@
   <div class="actions">
     <button class="action-btn entrada" id="btnAbrirEntrada">+ Entrada</button>
     <button class="action-btn gasto" id="btnAbrirGasto">+ Gasto</button>
-    <button class="action-btn troco" id="btnTroco">🪙 Fundo Troco</button>
+    <button class="action-btn troco" id="btnTroco">🪙 Iniciar Caixa</button>
     <button class="action-btn sangria" id="btnSangria">🔒 Sangria</button>
   </div>
 
   <section class="list-section">
-    <h2>Entradas</h2>
+    <div class="section-header">
+      <h2>Entradas</h2>
+      <div class="filter-pills" id="filtroEntradas">
+        <button class="active" data-f="todos">Todos</button>
+        <button data-f="dinheiro">Dinheiro</button>
+        <button data-f="cartao">Cartão</button>
+        <button data-f="ifood">iFood</button>
+        <button data-f="99">99</button>
+      </div>
+    </div>
     <div id="listaEntradas"></div>
   </section>
 
   <section class="list-section">
-    <h2>Gastos</h2>
+    <div class="section-header">
+      <h2>Gastos</h2>
+      <div class="filter-pills" id="filtroGastos">
+        <button class="active" data-f="todos">Todos</button>
+        <button data-f="fornecedor">Fornecedor</button>
+        <button data-f="funcionario">Funcionário</button>
+        <button data-f="particular">Particular</button>
+        <button data-f="outros">Outros</button>
+        <button data-f="sangria">Sangria</button>
+      </div>
+    </div>
     <div id="listaGastos"></div>
   </section>
 </main>
 
-<!-- ===== Modais (Idênticos, com leves ajustes internos) ===== -->
+<!-- ===== Modais ===== -->
 <div class="overlay" id="overlayEntrada">
   <div class="modal">
     <h3 id="tituloModalEntrada">Dinheiro no caixa</h3>
@@ -327,6 +374,8 @@ let currentDate = new Date();
 let currentMesDate = new Date(); 
 let entradasDoDia = [];
 let gastosDoDia = []; 
+let filtroEntradaAtual = 'todos';
+let filtroGastoAtual = 'todos';
 
 // ---------- Pickers & Selects ----------
 document.getElementById('btnPickData').addEventListener('click', () => { try { document.getElementById('pickerData').showPicker(); } catch(e) { document.getElementById('pickerData').focus(); } });
@@ -377,47 +426,45 @@ async function loadCache(){
   }
 }
 
+// ---------- Contexto (Clima / Movimento) ----------
+async function refreshContexto(){
+  const { data } = await db.from('contexto_diario').select('*').eq('data', toDateStr(currentDate)).maybeSingle();
+  document.getElementById('selClima').value = data?.clima || '';
+  document.getElementById('selMovimento').value = data?.movimento || '';
+}
+async function saveContexto(){
+  await db.from('contexto_diario').upsert({
+    data: toDateStr(currentDate),
+    clima: document.getElementById('selClima').value,
+    movimento: document.getElementById('selMovimento').value
+  });
+}
+document.getElementById('selClima').addEventListener('change', saveContexto);
+document.getElementById('selMovimento').addEventListener('change', saveContexto);
+
 // ---------- 7-Day Mini Histórico ----------
 async function renderMiniHistory() {
-  const end = new Date(currentDate);
-  const start = new Date(currentDate);
-  start.setDate(start.getDate() - 6); // Puxa 7 dias pra trás
-
+  const end = new Date(currentDate); const start = new Date(currentDate); start.setDate(start.getDate() - 6); 
   const [histE, histG] = await Promise.all([
     db.from('entradas').select('data, valor').gte('data', toDateStr(start)).lte('data', toDateStr(end)),
     db.from('gastos').select('data, valor').gte('data', toDateStr(start)).lte('data', toDateStr(end))
   ]);
-
   const map = {};
-  for(let i=0; i<7; i++){
-    const d = new Date(start); d.setDate(d.getDate() + i);
-    map[toDateStr(d)] = { e: 0, g: 0, dateObj: d };
-  }
-  
+  for(let i=0; i<7; i++){ const d = new Date(start); d.setDate(d.getDate() + i); map[toDateStr(d)] = { e: 0, g: 0, dateObj: d }; }
   (histE.data||[]).forEach(x => { if(map[x.data]) map[x.data].e += Number(x.valor) });
   (histG.data||[]).forEach(x => { if(map[x.data]) map[x.data].g += Number(x.valor) });
 
   let html = '';
   Object.keys(map).sort().forEach(dateKey => {
-    const info = map[dateKey];
-    const saldo = info.e - info.g;
+    const info = map[dateKey]; const saldo = info.e - info.g;
     const isActive = dateKey === toDateStr(currentDate) ? 'active' : '';
-    let colorClass = '';
-    if (info.e > 0 || info.g > 0) colorClass = saldo >= 0 ? 'pos' : 'neg'; // Cinza se não teve movimento
-    
+    let colorClass = ''; if (info.e > 0 || info.g > 0) colorClass = saldo >= 0 ? 'pos' : 'neg'; 
     const dataCurta = info.dateObj.toLocaleDateString('pt-BR', {day:'2-digit', month:'2-digit'});
-    html += `
-      <div class="mh-dot ${colorClass} ${isActive}" data-jump="${dateKey}">
-        <div class="mh-tooltip">${dataCurta}<br/><b>${fmtBRL(saldo)}</b></div>
-      </div>
-    `;
+    html += `<div class="mh-dot ${colorClass} ${isActive}" data-jump="${dateKey}"><div class="mh-tooltip">${dataCurta}<br/><b>${fmtBRL(saldo)}</b></div></div>`;
   });
-  
-  const el = document.getElementById('miniHistory');
-  el.innerHTML = html;
+  const el = document.getElementById('miniHistory'); el.innerHTML = html;
   el.querySelectorAll('.mh-dot').forEach(dot => dot.addEventListener('click', () => {
-    const [y, m, d] = dot.dataset.jump.split('-');
-    currentDate = new Date(y, m-1, d); currentMesDate = new Date(y, m-1, 1); refresh();
+    const [y, m, d] = dot.dataset.jump.split('-'); currentDate = new Date(y, m-1, d); currentMesDate = new Date(y, m-1, 1); refresh();
   }));
 }
 
@@ -439,14 +486,16 @@ async function refreshMes() {
 }
 
 async function refresh(){
-  renderDateLabel(); await refreshMes(); await renderMiniHistory();
+  renderDateLabel(); await refreshMes(); await renderMiniHistory(); await refreshContexto();
   const dateStr = toDateStr(currentDate);
   const [resDiaEnt, resDiaGas] = await Promise.all([
     db.from('entradas').select('*').eq('data', dateStr).order('created_at', { ascending:false }),
     db.from('gastos').select('*').eq('data', dateStr).order('created_at', { ascending:false })
   ]);
   entradasDoDia = resDiaEnt.data || []; gastosDoDia = resDiaGas.data || [];
-  renderSummary(entradasDoDia, gastosDoDia); renderListaEntradas(entradasDoDia); renderListaGastos(gastosDoDia);
+  renderSummary(entradasDoDia, gastosDoDia); 
+  renderListaEntradas(); 
+  renderListaGastos();
 }
 
 const fpLabel = { dinheiro:'Dinheiro', cartao:'Cartão', ifood:'iFood', '99':'99' };
@@ -463,7 +512,6 @@ function renderSummary(entradas, gastos){
   const diaEl = document.getElementById('diaLabel'); diaEl.classList.remove('dia-lucro', 'dia-prejuizo');
   if (entradas.length || gastos.length) diaEl.classList.add(saldo >= 0 ? 'dia-lucro' : 'dia-prejuizo');
 
-  // Filtros / Subtotais
   const bE = {}; entradas.forEach(e => bE[e.forma_pagamento] = (bE[e.forma_pagamento]||0) + Number(e.valor));
   document.getElementById('breakdownEntradas').innerHTML = Object.keys(fpLabel).map(fp => `<div class="pill-stat">${fpLabel[fp]} <b>${fmtBRL(bE[fp]||0)}</b></div>`).join('');
   
@@ -471,14 +519,27 @@ function renderSummary(entradas, gastos){
   document.getElementById('breakdownGastos').innerHTML = Object.keys(bG).length > 0 ? Object.keys(bG).map(c => `<div class="pill-stat" style="background:#F4F1EB; border-color:#E0D8C8;">${labelFor[c]||'Outros'} <b>${fmtBRL(bG[c])}</b></div>`).join('') : '';
 }
 
-function renderListaEntradas(entradas){
+// ---------- Filtros ----------
+document.getElementById('filtroEntradas').addEventListener('click', (e) => {
+  if(e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('#filtroEntradas button').forEach(b => b.classList.remove('active')); e.target.classList.add('active');
+  filtroEntradaAtual = e.target.dataset.f; renderListaEntradas();
+});
+document.getElementById('filtroGastos').addEventListener('click', (e) => {
+  if(e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('#filtroGastos button').forEach(b => b.classList.remove('active')); e.target.classList.add('active');
+  filtroGastoAtual = e.target.dataset.f; renderListaGastos();
+});
+
+function renderListaEntradas(){
   const el = document.getElementById('listaEntradas');
-  if (!entradas.length){ el.innerHTML = '<div class="empty">Nenhuma entrada lançada.</div>'; return; }
-  el.innerHTML = entradas.map(e => `
+  const filtradas = entradasDoDia.filter(e => filtroEntradaAtual === 'todos' || e.forma_pagamento === filtroEntradaAtual);
+  if (!filtradas.length){ el.innerHTML = '<div class="empty">Nenhuma entrada encontrada.</div>'; return; }
+  el.innerHTML = filtradas.map(e => `
     <div class="row-item">
       <div class="desc">
         <span class="tag">${fpLabel[e.forma_pagamento]}</span>
-        ${e.observacao ? `<span class="tag" style="${e.observacao.includes('Troco') ? 'background:var(--blue-troco);color:#fff;' : 'background:#E2E8E4;'}">${e.observacao}</span>` : ''}
+        ${e.observacao ? `<span class="tag" style="${e.observacao === 'Iniciar Caixa' ? 'background:var(--blue-troco);color:#fff;' : 'background:#E2E8E4;'}">${e.observacao}</span>` : ''}
       </div>
       <div class="right"><span class="valor">${fmtBRL(e.valor)}</span><button class="icon-btn edit" data-edit-entrada="${e.id}">✎</button><button class="icon-btn" data-del-entrada="${e.id}">✕</button></div>
     </div>`).join('');
@@ -491,16 +552,27 @@ function nomeGasto(g){
   const item = cache[g.categoria]?.find(i => i.id === g[g.categoria+'_id']); return item ? item.nome : '(removido)';
 }
 
-function renderListaGastos(gastos){
+function renderListaGastos(){
   const el = document.getElementById('listaGastos');
-  if (!gastos.length){ el.innerHTML = '<div class="empty">Nenhum gasto lançado.</div>'; return; }
-  el.innerHTML = gastos.map(g => {
-    // Para Particular, a observação agora mora na coluna descricao para não dar erro 400!
-    const obsBadge = (g.categoria === 'particular' && g.descricao) ? `<span class="tag" style="background:#E2E8E4;">${g.descricao}</span>` : (g.observacao ? `<span class="tag" style="background:#E2E8E4;">${g.observacao}</span>` : '');
-    const isSangria = g.descricao && g.descricao.includes('Sangria');
+  const filtradas = gastosDoDia.filter(g => {
+    if(filtroGastoAtual === 'todos') return true;
+    if(filtroGastoAtual === 'sangria') return g.descricao && g.descricao.startsWith('Sangria');
+    // Para as outras categorias, garantir que não mostre Sangria dentro de "Outros" quando filtrado
+    if(filtroGastoAtual === 'outros') return g.categoria === 'outros' && !(g.descricao && g.descricao.startsWith('Sangria'));
+    return g.categoria === filtroGastoAtual;
+  });
+  
+  if (!filtradas.length){ el.innerHTML = '<div class="empty">Nenhum gasto encontrado.</div>'; return; }
+  el.innerHTML = filtradas.map(g => {
+    const isSangria = g.descricao && g.descricao.startsWith('Sangria');
+    let extraObs = '';
+    if (g.categoria === 'particular' && g.descricao) extraObs = g.descricao; 
+    else if (isSangria && g.descricao.includes(' | ')) extraObs = g.descricao.split(' | ')[1];
+    else if (g.observacao) extraObs = g.observacao;
+
     return `
     <div class="row-item">
-      <div class="desc"><span class="tag" style="${isSangria ? 'background:#4A4138;color:#fff;' : ''}">${labelFor[g.categoria] || 'Outros'}</span>${nomeGasto(g)} ${obsBadge}</div>
+      <div class="desc"><span class="tag" style="${isSangria ? 'background:#4A4138;color:#fff;' : ''}">${isSangria ? 'Sangria' : (labelFor[g.categoria] || 'Outros')}</span>${!isSangria ? nomeGasto(g) : ''} ${extraObs ? `<span class="tag" style="background:#E2E8E4;">${extraObs}</span>` : ''}</div>
       <div class="right"><span class="valor">${fmtBRL(g.valor)}</span><button class="icon-btn edit" data-edit-gasto="${g.id}">✎</button><button class="icon-btn" data-del-gasto="${g.id}">✕</button></div>
     </div>`
   }).join('');
@@ -517,15 +589,15 @@ function setupPills(containerId, varObj, varKey){
   });
 }
 
-// ---------- Entrada & Fundo Troco ----------
+// ---------- Entrada & Iniciar Caixa ----------
 let estEntrada = { turno:'Dia', mod:'Salão', fp:null, editId:null, isTroco: false };
 setupPills('turnoPills', estEntrada, 'turno'); setupPills('modalidadePills', estEntrada, 'mod'); setupPills('formaPagamentoPills', estEntrada, 'fp');
 
 function abrirModalEntrada(edit = null, isTroco = false) {
   estEntrada.editId = edit ? edit.id : null;
-  estEntrada.isTroco = isTroco || (edit && edit.observacao === 'Fundo de Troco');
+  estEntrada.isTroco = isTroco || (edit && edit.observacao === 'Iniciar Caixa');
   
-  document.getElementById('tituloModalEntrada').textContent = estEntrada.isTroco ? 'Fundo de Troco' : (edit ? 'Editar Entrada' : 'Dinheiro no caixa');
+  document.getElementById('tituloModalEntrada').textContent = estEntrada.isTroco ? 'Iniciar Caixa' : (edit ? 'Editar Entrada' : 'Dinheiro no caixa');
   document.getElementById('entradaErr').textContent = '';
 
   const pillBoxes = ['turnoPills', 'modalidadePills'];
@@ -533,21 +605,15 @@ function abrirModalEntrada(edit = null, isTroco = false) {
 
   if (estEntrada.isTroco) {
     pillBoxes.forEach(id => document.getElementById(id).style.display = 'none');
-    obsWrap.style.display = 'block';
-    document.getElementById('entradaObservacao').value = 'Fundo de Troco';
+    obsWrap.style.display = 'block'; document.getElementById('entradaObservacao').value = 'Iniciar Caixa';
     estEntrada.fp = 'dinheiro';
     document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => {
       b.classList.toggle('active', b.dataset.fp === 'dinheiro');
-      b.style.pointerEvents = b.dataset.fp === 'dinheiro' ? 'auto' : 'none';
-      b.style.opacity = b.dataset.fp === 'dinheiro' ? '1' : '0.5';
+      b.style.pointerEvents = b.dataset.fp === 'dinheiro' ? 'auto' : 'none'; b.style.opacity = b.dataset.fp === 'dinheiro' ? '1' : '0.5';
     });
   } else {
-    pillBoxes.forEach(id => document.getElementById(id).style.display = 'flex');
-    obsWrap.style.display = 'none';
-    document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => {
-      b.style.pointerEvents = 'auto'; b.style.opacity = '1';
-    });
-    
+    pillBoxes.forEach(id => document.getElementById(id).style.display = 'flex'); obsWrap.style.display = 'none';
+    document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => { b.style.pointerEvents = 'auto'; b.style.opacity = '1'; });
     if (edit) {
       const infos = (edit.observacao || 'Dia | Salão').split(' | ');
       estEntrada.turno = infos[0] || 'Dia'; estEntrada.mod = infos[1] || 'Salão'; estEntrada.fp = edit.forma_pagamento;
@@ -555,26 +621,22 @@ function abrirModalEntrada(edit = null, isTroco = false) {
       document.querySelectorAll('#modalidadePills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.val === estEntrada.mod));
       document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.fp === estEntrada.fp));
     } else {
-      estEntrada.fp = null;
-      document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
+      estEntrada.fp = null; document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
     }
   }
-
   document.getElementById('entradaValor').value = edit ? (edit.valor).toFixed(2).replace('.',',') : '';
   if(edit) mascaraMoeda({target: document.getElementById('entradaValor')});
-  document.getElementById('overlayEntrada').classList.add('show');
-  setTimeout(() => document.getElementById('entradaValor').focus(), 100);
+  document.getElementById('overlayEntrada').classList.add('show'); setTimeout(() => document.getElementById('entradaValor').focus(), 100);
 }
 document.getElementById('btnAbrirEntrada').addEventListener('click', () => abrirModalEntrada(null, false));
 document.getElementById('btnTroco').addEventListener('click', () => abrirModalEntrada(null, true));
 
 document.getElementById('btnSalvarEntrada').addEventListener('click', async () => {
-  const vNum = parseMoeda(document.getElementById('entradaValor').value);
-  const err = document.getElementById('entradaErr');
+  const vNum = parseMoeda(document.getElementById('entradaValor').value); const err = document.getElementById('entradaErr');
   if (!estEntrada.fp) { err.textContent = 'Escolha a forma de pagamento.'; return; }
   if (!vNum || vNum <= 0) { err.textContent = 'Informe um valor válido.'; return; }
   err.textContent = 'Salvando...';
-  const payload = { data: toDateStr(currentDate), forma_pagamento: estEntrada.fp, valor: vNum, observacao: estEntrada.isTroco ? 'Fundo de Troco' : `${estEntrada.turno} | ${estEntrada.mod}` };
+  const payload = { data: toDateStr(currentDate), forma_pagamento: estEntrada.fp, valor: vNum, observacao: estEntrada.isTroco ? 'Iniciar Caixa' : `${estEntrada.turno} | ${estEntrada.mod}` };
   if (estEntrada.editId) await db.from('entradas').update(payload).eq('id', estEntrada.editId);
   else { payload.created_by = currentUser?.id; await db.from('entradas').insert(payload); }
   document.getElementById('overlayEntrada').classList.remove('show'); refresh();
@@ -583,7 +645,7 @@ document.getElementById('btnSalvarEntrada').addEventListener('click', async () =
 // ---------- Gasto & Sangria ----------
 let estGasto = { cat:null, editId:null, isSangria: false, onChange: (c) => {
   const sel = document.getElementById('gastoSelectWrap'), out = document.getElementById('gastoOutrosWrap'), obs = document.getElementById('gastoObsWrap');
-  if (estGasto.isSangria) { sel.style.display = 'none'; out.style.display = 'block'; obs.style.display = 'none'; document.getElementById('categoriaPills').style.pointerEvents = 'none'; return; }
+  if (estGasto.isSangria) { sel.style.display = 'none'; out.style.display = 'none'; obs.style.display = 'block'; document.getElementById('categoriaPills').style.pointerEvents = 'none'; return; }
   document.getElementById('categoriaPills').style.pointerEvents = 'auto';
   if (c === 'outros'){ sel.style.display = 'none'; out.style.display = 'block'; obs.style.display = 'none'; }
   else if(c){ out.style.display = 'none'; sel.style.display = 'block'; document.getElementById('gastoSelectLabel').textContent = labelFor[c]; populateSelect(c); obs.style.display = (c === 'particular') ? 'block' : 'none'; }
@@ -597,7 +659,7 @@ function populateSelect(cat){
 
 function abrirModalGasto(gastoEdit = null, isSangria = false) {
   estGasto.editId = gastoEdit ? gastoEdit.id : null;
-  estGasto.isSangria = isSangria || (gastoEdit && gastoEdit.descricao === 'Sangria de Caixa');
+  estGasto.isSangria = isSangria || (gastoEdit && gastoEdit.descricao && gastoEdit.descricao.startsWith('Sangria'));
   
   document.getElementById('tituloModalGasto').textContent = estGasto.isSangria ? 'Sangria / Retirada' : (gastoEdit ? 'Editar Gasto' : 'Novo Gasto');
   document.getElementById('gastoErr').textContent = '';
@@ -608,41 +670,38 @@ function abrirModalGasto(gastoEdit = null, isSangria = false) {
   document.querySelectorAll('#categoriaPills .pillbtn').forEach(b => b.classList.toggle('active', b.dataset.cat === catToSelect));
   estGasto.cat = catToSelect; estGasto.onChange(catToSelect);
 
-  if (estGasto.isSangria) {
-    document.getElementById('gastoDescricao').value = 'Sangria de Caixa';
-    document.getElementById('gastoDescricao').disabled = true;
-  } else {
-    document.getElementById('gastoDescricao').disabled = false;
-  }
-
   if (gastoEdit) {
     document.getElementById('gastoValor').value = (gastoEdit.valor).toFixed(2).replace('.',','); mascaraMoeda({target: document.getElementById('gastoValor')});
-    if(!estGasto.isSangria) {
+    if(estGasto.isSangria) {
+      const parts = gastoEdit.descricao.split(' | ');
+      document.getElementById('gastoObservacao').value = parts[1] || '';
+    } else {
       if(catToSelect === 'outros') document.getElementById('gastoDescricao').value = gastoEdit.descricao || '';
       else document.getElementById('gastoSelect').value = gastoEdit[`${catToSelect}_id`];
-      // Carrega observação do particular que agora fica salva em descricao para evitar o erro 400
       if(catToSelect === 'particular') document.getElementById('gastoObservacao').value = gastoEdit.descricao || ''; 
     }
   } else {
     document.getElementById('gastoValor').value = '';
-    if(!estGasto.isSangria) { document.getElementById('gastoDescricao').value = ''; document.getElementById('gastoObservacao').value = ''; }
+    document.getElementById('gastoDescricao').value = ''; document.getElementById('gastoObservacao').value = '';
   }
   
-  document.getElementById('overlayGasto').classList.add('show');
-  setTimeout(() => document.getElementById('gastoValor').focus(), 100);
+  document.getElementById('overlayGasto').classList.add('show'); setTimeout(() => document.getElementById('gastoValor').focus(), 100);
 }
 document.getElementById('btnAbrirGasto').addEventListener('click', () => abrirModalGasto(null, false));
 document.getElementById('btnSangria').addEventListener('click', () => abrirModalGasto(null, true));
 document.getElementById('btnGerenciarLista').addEventListener('click', () => { if (estGasto.cat && estGasto.cat !== 'outros') abrirGerenciar(estGasto.cat); });
 
 document.getElementById('btnSalvarGasto').addEventListener('click', async () => {
-  const vNum = parseMoeda(document.getElementById('gastoValor').value);
-  const err = document.getElementById('gastoErr');
+  const vNum = parseMoeda(document.getElementById('gastoValor').value); const err = document.getElementById('gastoErr');
   if (!estGasto.cat) { err.textContent = 'Escolha a categoria.'; return; }
   if (!vNum || vNum <= 0) { err.textContent = 'Informe um valor válido.'; return; }
 
   const payload = { data: toDateStr(currentDate), categoria: estGasto.cat, valor: vNum };
-  if (estGasto.cat === 'outros'){
+  
+  if (estGasto.isSangria) {
+    const obs = document.getElementById('gastoObservacao').value.trim();
+    payload.descricao = 'Sangria' + (obs ? ` | ${obs}` : '');
+  } else if (estGasto.cat === 'outros'){
     payload.descricao = document.getElementById('gastoDescricao').value.trim();
     if (!payload.descricao) { err.textContent = 'Descreva o gasto.'; return; }
   } else {
@@ -651,10 +710,7 @@ document.getElementById('btnSalvarGasto').addEventListener('click', async () => 
     payload[estGasto.cat + '_id'] = selId;
   }
   
-  // Consertando o erro 400: salvando a observação dentro da coluna 'descricao'
-  if (estGasto.cat === 'particular'){
-    payload.descricao = document.getElementById('gastoObservacao').value.trim() || null;
-  }
+  if (!estGasto.isSangria && estGasto.cat === 'particular') payload.descricao = document.getElementById('gastoObservacao').value.trim() || null;
 
   err.textContent = 'Salvando...';
   if (estGasto.editId) await db.from('gastos').update(payload).eq('id', estGasto.editId);
@@ -662,7 +718,7 @@ document.getElementById('btnSalvarGasto').addEventListener('click', async () => 
   document.getElementById('overlayGasto').classList.remove('show'); refresh();
 });
 
-// ---------- Gerenciar (com edição consertada) ----------
+// ---------- Gerenciar ----------
 let gerenciarCatAtual = null;
 async function abrirGerenciar(cat){
   gerenciarCatAtual = cat; document.getElementById('gerenciarTitulo').textContent = 'Gerenciar ' + labelFor[cat].toLowerCase() + 's';
@@ -684,8 +740,6 @@ function renderGerenciarLista(){
     await db.from(tableFor[gerenciarCatAtual]).update({ ativo:false }).eq('id', btn.dataset.remove);
     await loadCache(); renderGerenciarLista(); if (estGasto.cat === gerenciarCatAtual) populateSelect(gerenciarCatAtual);
   }));
-  
-  // Consertando a edição de nomes que havia sumido
   el.querySelectorAll('[data-edit-item]').forEach(btn => btn.addEventListener('click', async () => {
     const novoNome = prompt('Corrigir nome:', btn.dataset.nome);
     if(novoNome && novoNome.trim() !== '' && novoNome !== btn.dataset.nome) {
