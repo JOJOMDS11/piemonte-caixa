@@ -92,6 +92,12 @@
   .section-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:10px; }
   .section-header h2{font-size:0.85rem; text-transform:uppercase; letter-spacing:0.04em; color:var(--olive); margin:0;}
   
+  .add-mini-btn { border:none; border-radius:4px; color:#fff; font-weight:bold; cursor:pointer; width:26px; height:26px; font-size:1.2rem; display:flex; align-items:center; justify-content:center; padding-bottom:2px; box-shadow:0 1px 3px rgba(0,0,0,0.1);}
+  .add-mini-btn.entrada { background:var(--olive); }
+  .add-mini-btn.entrada:hover { background:#4c5738; }
+  .add-mini-btn.gasto { background:var(--wine); }
+  .add-mini-btn.gasto:hover { background:var(--wine-dark); }
+
   .filter-pills { display:flex; gap:6px; flex-wrap:wrap; }
   .filter-pills button { background:#fff; border:1px solid var(--line); padding:4px 10px; border-radius:12px; font-size:0.72rem; cursor:pointer; color:var(--ink); font-weight:500; transition:all 0.15s; }
   .filter-pills button.active { background:var(--pine); border-color:var(--pine); color:#fff; }
@@ -105,6 +111,15 @@
   .icon-btn:hover{color:var(--wine);}
   .icon-btn.edit:hover{color:var(--pine);}
   .empty{color:#A79E8C; font-size:0.85rem; padding:8px 2px;}
+
+  /* Paginação */
+  .paginacao-wrap { display:flex; justify-content:space-between; align-items:center; margin-top:10px; font-size:0.8rem; }
+  .pag-controls { display:flex; gap:6px; align-items:center; font-weight:600; color:var(--pine);}
+  .pag-btn { background:#fff; border:1px solid var(--line); border-radius:4px; padding:4px 12px; cursor:pointer; font-family:inherit; color:var(--pine); font-weight:700;}
+  .pag-btn:hover:not(:disabled) { background:var(--paper-dim); }
+  .pag-btn:disabled { opacity:0.5; cursor:not-allowed; }
+  .pag-all-btn { background:transparent; border:none; color:var(--olive); text-decoration:underline; cursor:pointer; font-size:0.8rem; font-weight:600;}
+  .pag-all-btn:hover { color:var(--pine); }
 
   .overlay{position:fixed; inset:0; background:rgba(21,32,24,0.55); display:none; align-items:flex-end; justify-content:center; z-index:50;}
   .overlay.show{display:flex;}
@@ -229,7 +244,10 @@
 
   <section class="list-section">
     <div class="section-header">
-      <h2>Entradas</h2>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <h2>Entradas</h2>
+        <button class="add-mini-btn entrada" id="btnMiniEntrada">+</button>
+      </div>
       <div class="filter-pills" id="filtroEntradas">
         <button class="active" data-f="todos">Todos</button>
         <button data-f="dinheiro">Dinheiro</button>
@@ -239,11 +257,15 @@
       </div>
     </div>
     <div id="listaEntradas"></div>
+    <div id="paginacaoEntradas" class="paginacao-wrap"></div>
   </section>
 
   <section class="list-section">
     <div class="section-header">
-      <h2>Gastos</h2>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <h2>Gastos</h2>
+        <button class="add-mini-btn gasto" id="btnMiniGasto">+</button>
+      </div>
       <div class="filter-pills" id="filtroGastos">
         <button class="active" data-f="todos">Todos</button>
         <button data-f="fornecedor">Fornecedor</button>
@@ -254,6 +276,7 @@
       </div>
     </div>
     <div id="listaGastos"></div>
+    <div id="paginacaoGastos" class="paginacao-wrap"></div>
   </section>
 </main>
 
@@ -283,8 +306,8 @@
       <input type="number" id="entradaQtd" min="1" placeholder="Ex: 5">
     </div>
     <div id="entradaIdentWrap" style="display:none;">
-      <label>Identificação / Cliente (opcional)</label>
-      <input type="text" id="entradaIdentificacao" placeholder="Ex: Pedido #123, Mesa 5...">
+      <label>Convênio / Cliente (opcional)</label>
+      <input type="text" id="entradaIdentificacao" placeholder="Ex: Ticket, Sodexo, João...">
     </div>
     <div id="entradaObsWrap" style="display:none;">
       <label>Observação Exclusiva</label>
@@ -382,6 +405,17 @@ let entradasDoDia = [];
 let gastosDoDia = []; 
 let filtroEntradaAtual = 'todos';
 let filtroGastoAtual = 'todos';
+
+// Variáveis de Paginação
+const itensPorPagina = 5;
+let paginaEntradas = 1;
+let mostrarTodosEntradas = false;
+let paginaGastos = 1;
+let mostrarTodosGastos = false;
+
+// Botões Mini de Adicionar
+document.getElementById('btnMiniEntrada').addEventListener('click', () => abrirModalEntrada(null, false));
+document.getElementById('btnMiniGasto').addEventListener('click', () => abrirModalGasto(null, false));
 
 // ---------- Pickers & Selects ----------
 document.getElementById('btnPickData').addEventListener('click', () => { try { document.getElementById('pickerData').showPicker(); } catch(e) { document.getElementById('pickerData').focus(); } });
@@ -495,6 +529,11 @@ async function refresh(){
     db.from('gastos').select('*').eq('data', dateStr).order('created_at', { ascending:false })
   ]);
   entradasDoDia = resDiaEnt.data || []; gastosDoDia = resDiaGas.data || [];
+  
+  // Reseta paginação ao trocar de dia
+  paginaEntradas = 1; mostrarTodosEntradas = false;
+  paginaGastos = 1; mostrarTodosGastos = false;
+
   renderSummary(entradasDoDia, gastosDoDia); renderListaEntradas(); renderListaGastos();
 }
 
@@ -523,15 +562,18 @@ function renderSummary(entradas, gastos){
 document.getElementById('filtroEntradas').addEventListener('click', (e) => {
   if(e.target.tagName !== 'BUTTON') return;
   document.querySelectorAll('#filtroEntradas button').forEach(b => b.classList.remove('active')); e.target.classList.add('active');
-  filtroEntradaAtual = e.target.dataset.f; renderListaEntradas();
+  filtroEntradaAtual = e.target.dataset.f; 
+  paginaEntradas = 1; mostrarTodosEntradas = false;
+  renderListaEntradas();
 });
 document.getElementById('filtroGastos').addEventListener('click', (e) => {
   if(e.target.tagName !== 'BUTTON') return;
   document.querySelectorAll('#filtroGastos button').forEach(b => b.classList.remove('active')); e.target.classList.add('active');
-  filtroGastoAtual = e.target.dataset.f; renderListaGastos();
+  filtroGastoAtual = e.target.dataset.f; 
+  paginaGastos = 1; mostrarTodosGastos = false;
+  renderListaGastos();
 });
 
-// Cores bonitas e dedicadas para os badges de pagamento
 function getFpBadge(fp) {
   if (fp === 'ifood') return `<span class="tag" style="background:#EA1D2C;color:#fff;border:none;">iFood</span>`;
   if (fp === '99') return `<span class="tag" style="background:#FFCC00;color:#000;border:none;">99</span>`;
@@ -542,9 +584,22 @@ function getFpBadge(fp) {
 
 function renderListaEntradas(){
   const el = document.getElementById('listaEntradas');
+  const pagWrap = document.getElementById('paginacaoEntradas');
   const filtradas = entradasDoDia.filter(e => filtroEntradaAtual === 'todos' || e.forma_pagamento === filtroEntradaAtual);
-  if (!filtradas.length){ el.innerHTML = '<div class="empty">Nenhuma entrada encontrada.</div>'; return; }
-  el.innerHTML = filtradas.map(e => `
+  
+  if (!filtradas.length){ 
+    el.innerHTML = '<div class="empty">Nenhuma entrada encontrada.</div>'; 
+    pagWrap.innerHTML = '';
+    return; 
+  }
+
+  let itensExibir = filtradas;
+  if (!mostrarTodosEntradas) {
+    const inicio = (paginaEntradas - 1) * itensPorPagina;
+    itensExibir = filtradas.slice(inicio, inicio + itensPorPagina);
+  }
+
+  el.innerHTML = itensExibir.map(e => `
     <div class="row-item">
       <div class="desc">
         ${getFpBadge(e.forma_pagamento)}
@@ -552,8 +607,28 @@ function renderListaEntradas(){
       </div>
       <div class="right"><span class="valor">${fmtBRL(e.valor)}</span><button class="icon-btn edit" data-edit-entrada="${e.id}">✎</button><button class="icon-btn" data-del-entrada="${e.id}">✕</button></div>
     </div>`).join('');
+  
   el.querySelectorAll('[data-del-entrada]').forEach(btn => btn.addEventListener('click', async () => { if (!confirm('Excluir?')) return; await db.from('entradas').delete().eq('id', btn.dataset.delEntrada); refresh(); }));
   el.querySelectorAll('[data-edit-entrada]').forEach(btn => btn.addEventListener('click', () => abrirModalEntrada(entradasDoDia.find(x => x.id === btn.dataset.editEntrada))));
+
+  // Renderiza controles de paginação
+  if (mostrarTodosEntradas || filtradas.length <= itensPorPagina) {
+    pagWrap.innerHTML = filtradas.length > itensPorPagina ? `<div style="width:100%; text-align:center;"><button class="pag-all-btn" id="btnMenosEntradas">Mostrar páginas</button></div>` : '';
+    if(document.getElementById('btnMenosEntradas')) document.getElementById('btnMenosEntradas').addEventListener('click', () => { mostrarTodosEntradas = false; paginaEntradas = 1; renderListaEntradas(); });
+  } else {
+    const totalPags = Math.ceil(filtradas.length / itensPorPagina);
+    pagWrap.innerHTML = `
+      <div class="pag-controls">
+          <button class="pag-btn" id="prevEntradas" ${paginaEntradas === 1 ? 'disabled' : ''}>‹</button>
+          <span>Pág ${paginaEntradas} de ${totalPags}</span>
+          <button class="pag-btn" id="nextEntradas" ${paginaEntradas === totalPags ? 'disabled' : ''}>›</button>
+      </div>
+      <button class="pag-all-btn" id="btnTodasEntradas">Exibir todos (${filtradas.length})</button>
+    `;
+    if(document.getElementById('prevEntradas')) document.getElementById('prevEntradas').addEventListener('click', () => { paginaEntradas--; renderListaEntradas(); });
+    if(document.getElementById('nextEntradas')) document.getElementById('nextEntradas').addEventListener('click', () => { paginaEntradas++; renderListaEntradas(); });
+    if(document.getElementById('btnTodasEntradas')) document.getElementById('btnTodasEntradas').addEventListener('click', () => { mostrarTodosEntradas = true; renderListaEntradas(); });
+  }
 }
 
 function nomeGasto(g){
@@ -563,6 +638,7 @@ function nomeGasto(g){
 
 function renderListaGastos(){
   const el = document.getElementById('listaGastos');
+  const pagWrap = document.getElementById('paginacaoGastos');
   const filtradas = gastosDoDia.filter(g => {
     if(filtroGastoAtual === 'todos') return true;
     if(filtroGastoAtual === 'sangria') return g.descricao && g.descricao.startsWith('Sangria');
@@ -570,8 +646,19 @@ function renderListaGastos(){
     return g.categoria === filtroGastoAtual;
   });
   
-  if (!filtradas.length){ el.innerHTML = '<div class="empty">Nenhum gasto encontrado.</div>'; return; }
-  el.innerHTML = filtradas.map(g => {
+  if (!filtradas.length){ 
+    el.innerHTML = '<div class="empty">Nenhum gasto encontrado.</div>'; 
+    pagWrap.innerHTML = '';
+    return; 
+  }
+
+  let itensExibir = filtradas;
+  if (!mostrarTodosGastos) {
+    const inicio = (paginaGastos - 1) * itensPorPagina;
+    itensExibir = filtradas.slice(inicio, inicio + itensPorPagina);
+  }
+
+  el.innerHTML = itensExibir.map(g => {
     const isSangria = g.descricao && g.descricao.startsWith('Sangria');
     let extraObs = '';
     if (g.categoria === 'particular' && g.descricao) extraObs = g.descricao; 
@@ -584,10 +671,31 @@ function renderListaGastos(){
       <div class="right"><span class="valor">${fmtBRL(g.valor)}</span><button class="icon-btn edit" data-edit-gasto="${g.id}">✎</button><button class="icon-btn" data-del-gasto="${g.id}">✕</button></div>
     </div>`
   }).join('');
+  
   el.querySelectorAll('[data-del-gasto]').forEach(btn => btn.addEventListener('click', async () => { if (!confirm('Excluir?')) return; await db.from('gastos').delete().eq('id', btn.dataset.delGasto); refresh(); }));
   el.querySelectorAll('[data-edit-gasto]').forEach(btn => btn.addEventListener('click', () => abrirModalGasto(gastosDoDia.find(x => x.id === btn.dataset.editGasto))));
+
+  // Renderiza controles de paginação
+  if (mostrarTodosGastos || filtradas.length <= itensPorPagina) {
+    pagWrap.innerHTML = filtradas.length > itensPorPagina ? `<div style="width:100%; text-align:center;"><button class="pag-all-btn" id="btnMenosGastos">Mostrar páginas</button></div>` : '';
+    if(document.getElementById('btnMenosGastos')) document.getElementById('btnMenosGastos').addEventListener('click', () => { mostrarTodosGastos = false; paginaGastos = 1; renderListaGastos(); });
+  } else {
+    const totalPags = Math.ceil(filtradas.length / itensPorPagina);
+    pagWrap.innerHTML = `
+      <div class="pag-controls">
+          <button class="pag-btn" id="prevGastos" ${paginaGastos === 1 ? 'disabled' : ''}>‹</button>
+          <span>Pág ${paginaGastos} de ${totalPags}</span>
+          <button class="pag-btn" id="nextGastos" ${paginaGastos === totalPags ? 'disabled' : ''}>›</button>
+      </div>
+      <button class="pag-all-btn" id="btnTodasGastos">Exibir todos (${filtradas.length})</button>
+    `;
+    if(document.getElementById('prevGastos')) document.getElementById('prevGastos').addEventListener('click', () => { paginaGastos--; renderListaGastos(); });
+    if(document.getElementById('nextGastos')) document.getElementById('nextGastos').addEventListener('click', () => { paginaGastos++; renderListaGastos(); });
+    if(document.getElementById('btnTodasGastos')) document.getElementById('btnTodasGastos').addEventListener('click', () => { mostrarTodosGastos = true; renderListaGastos(); });
+  }
 }
 
+// Modificado para passar a chave da propriedade sendo alterada
 function setupPills(containerId, varObj, varKey){
   document.getElementById(containerId).addEventListener('click', (e) => {
     const btn = e.target.closest('.pillbtn'); if (!btn) return;
@@ -601,6 +709,7 @@ function setupPills(containerId, varObj, varKey){
 let estEntrada = { 
   turno:'Dia', mod:'Salão', fp:null, editId:null, isTroco: false,
   onChange: (val, key) => {
+    // Automação: se escolheu iFood ou 99, marca automaticamente a modalidade como Tele
     if (key === 'fp' && (val === 'ifood' || val === '99')) {
       estEntrada.mod = 'Tele';
       document.querySelectorAll('#modalidadePills .pillbtn').forEach(b => {
