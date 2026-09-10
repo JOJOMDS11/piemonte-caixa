@@ -1,340 +1,586 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Piemonte · Relatórios</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<!-- Supabase -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="config.js"></script>
-<!-- Chart.js para Gráficos -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<!-- SheetJS para Exportar Excel -->
-<script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piemonte · Analytics PRO</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="config.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
-<style>
-  :root{
-    --pine:#1E2A20; --pine-deep:#152018; --paper:#FAF7F1; --paper-dim:#F1ECE1;
-    --ink:#24261F; --wine:#8C3B2E; --olive:#5E6B45; --gold:#C79A3B; --line:#E4DFD3;
-    --green-ok:#3F6B44; --blue-info:#2A4B5C;
-  }
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0; background:var(--paper-dim); color:var(--ink); font-family:'Inter',sans-serif;}
-  
-  header{background:var(--pine); color:#fff; padding:16px 20px; display:flex; align-items:center; justify-content:space-between;}
-  header h1{font-family:'Fraunces',serif; font-weight:600; font-size:1.3rem; margin:0;}
-  .header-actions{display:flex; gap:10px;}
-  .header-actions button{background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.35); color:#fff; padding:7px 14px; border-radius:3px; font-family:inherit; font-size:0.8rem; cursor:pointer;}
-  .header-actions button:hover{background:rgba(255,255,255,0.2);}
-  .btn-voltar{background:transparent !important; border-color:transparent !important; color:var(--gold) !important;}
+    <style>
+        :root {
+            --pine: #1E2A20; --pine-deep: #152018; --paper: #FAF7F1; --paper-dim: #F1ECE1;
+            --ink: #24261F; --wine: #8C3B2E; --wine-dark: #732E23; --olive: #5E6B45;
+            --gold: #C79A3B; --line: #E4DFD3; --green-ok: #3F6B44; --blue-info: #2A4B5C;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', sans-serif; }
+        body { background-color: var(--paper-dim); color: var(--ink); padding-bottom: 50px; }
+        
+        /* Navbar inspirada no Gabinete adaptada para Piemonte */
+        .navbar { background: var(--pine); padding: 12px 20px; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; box-shadow: 0 4px 15px rgba(0,0,0,0.15); position: sticky; top: 0; z-index: 1000; gap: 10px;}
+        .navbar h1 { font-family: 'Fraunces', serif; font-size: 20px; font-weight: 600; color: white; margin: 0; justify-self: start;}
+        .nav-home-wrap { justify-self: center; display: flex; gap: 10px;}
+        .nav-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-self: end; }
+        .btn-home { background: var(--gold); color: #fff; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 700; border: none; white-space: nowrap; transition: 0.2s;}
+        .btn-home:hover { background: #b08630; }
+        .btn-voltar { background: rgba(255,255,255,0.1); color: white; text-decoration: none; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 600; transition: 0.2s; border: 1px solid rgba(255,255,255,0.2); white-space: nowrap;}
+        .btn-voltar:hover { background: rgba(255,255,255,0.2); }
+        .btn-reset-nav { background: var(--wine); color: white; border: none; padding: 8px 12px; border-radius: 4px; font-size: 13px; font-weight: 700; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); white-space: nowrap;}
+        .btn-reset-nav:hover { background: var(--wine-dark); }
 
-  main{max-width:1000px; margin:0 auto; padding:24px 16px; padding-bottom:80px;}
+        .container { max-width: 1350px; margin: 30px auto 0; padding: 0 15px; }
+        .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;}
+        .page-header h2 { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 600; color: var(--pine-deep);}
+        
+        .btn-export { background: var(--pine-deep); color: white; border: none; padding: 10px 15px; border-radius: 4px; font-size: 13px; font-weight: 600; cursor: pointer; transition: 0.2s; display: inline-flex; align-items: center; gap: 6px;}
+        .btn-export:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);}
+        .btn-excel { background: var(--green-ok); } .btn-excel:hover { background: #2f5233; }
 
-  /* Controles de Filtro */
-  .filters{background:#fff; border:1px solid var(--line); border-radius:6px; padding:16px; margin-bottom:24px; display:flex; flex-wrap:wrap; gap:14px; align-items:flex-end;}
-  .filter-group{display:flex; flex-direction:column; gap:6px; flex:1; min-width:200px;}
-  .filter-group label{font-size:0.75rem; text-transform:uppercase; color:var(--olive); font-weight:600;}
-  .filter-group input{padding:10px; border:1px solid var(--line); border-radius:4px; font-family:inherit;}
-  .btn-gerar{background:var(--pine); color:#fff; border:none; padding:11px 20px; border-radius:4px; font-weight:600; cursor:pointer;}
-  .btn-gerar:hover{background:var(--pine-deep);}
-  .export-btns{display:flex; gap:8px;}
-  .btn-export{background:#fff; border:1px solid var(--line); padding:10px 14px; border-radius:4px; font-weight:600; cursor:pointer; font-size:0.85rem;}
-  .btn-export:hover{background:var(--paper-dim);}
+        #containerAlertas { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+        .alerta-box { padding: 12px 20px; border-radius: 6px; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 10px; border-left: 5px solid; animation: slideIn 0.5s ease; cursor: pointer; transition: 0.2s; background: #fff;}
+        .alerta-box:hover { transform: translateY(-2px); box-shadow: 0 4px 6px rgba(0,0,0,0.05);}
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .alerta-critico { color: var(--wine-dark); border-left-color: var(--wine); }
+        .alerta-aviso { color: #854d0e; border-left-color: var(--gold); }
 
-  /* KPIs */
-  .kpi-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:16px; margin-bottom:24px;}
-  .kpi-card{background:#fff; border:1px solid var(--line); border-radius:6px; padding:20px; text-align:center;}
-  .kpi-card .label{font-size:0.75rem; text-transform:uppercase; color:var(--olive); font-weight:600; margin-bottom:8px;}
-  .kpi-card .value{font-family:'Fraunces',serif; font-size:1.8rem; font-weight:600;}
-  .kpi-card.positivo .value{color:var(--green-ok);}
-  .kpi-card.negativo .value{color:var(--wine);}
+        .filtros-avancados { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); border: 1px solid var(--line); margin-bottom: 30px; display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;}
+        .filtro-item { display: flex; flex-direction: column; flex: 1; min-width: 180px; }
+        .filtro-item label { font-size: 11px; font-weight: 700; color: var(--olive); text-transform: uppercase; margin-bottom: 6px; }
+        .filtro-item input, .filtro-item select { padding: 10px 12px; border-radius: 4px; border: 1px solid var(--line); font-size: 13px; color: var(--ink); outline: none; transition: 0.2s; background: var(--paper);}
+        .filtro-item input:focus, .filtro-item select:focus { border-color: var(--gold); background: white; }
 
-  /* Gráficos */
-  .charts-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(400px, 1fr)); gap:20px;}
-  .chart-container{background:#fff; border:1px solid var(--line); border-radius:6px; padding:20px;}
-  .chart-container h3{font-size:1rem; margin:0 0 16px; color:var(--pine); font-family:'Fraunces',serif;}
-  .canvas-wrapper{position:relative; height:300px; width:100%;}
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 25px; }
+        .kpi-card { background: #ffffff; border-radius: 8px; padding: 18px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); border: 1px solid var(--line); border-left: 4px solid var(--line); cursor: pointer; transition: 0.2s; }
+        .kpi-card:hover { transform: translateY(-3px); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .kpi-card.ativo { background: #fdfaf3; border-left-color: var(--gold); }
+        
+        .kpi-card.receita { border-left-color: var(--green-ok); }
+        .kpi-card.gasto { border-left-color: var(--wine); }
+        .kpi-card.lucro { border-left-color: var(--blue-info); }
+        .kpi-card.ticket { border-left-color: var(--gold); }
+        .kpi-card.volume { border-left-color: var(--olive); }
 
-  @media print {
-    .filters, header button { display: none !important; }
-    body { background: #fff; }
-    .chart-container { break-inside: avoid; border: none; box-shadow: none; }
-  }
-</style>
+        .kpi-titulo { font-size: 11px; font-weight: 700; color: var(--olive); text-transform: uppercase; letter-spacing: 0.5px; }
+        .kpi-valor { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 600; margin-top: 5px; color: var(--pine-deep); line-height: 1; transition: 0.3s; }
+
+        /* Lista Detalhada Estilo Gabinete */
+        .secao-lista { background: white; border-radius: 8px; padding: 20px; margin-bottom: 30px; border: 2px solid var(--gold); display: none; box-shadow: 0 10px 15px -3px rgba(199, 154, 59, 0.15);}
+        .secao-lista h3 { font-family: 'Fraunces', serif; font-size: 18px; color: var(--pine-deep); margin-bottom: 15px; border-bottom: 2px solid var(--line); padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center;}
+        .btn-fechar-lista { background: var(--wine); color: white; border: none; padding: 4px 10px; border-radius: 4px; font-size: 11px; cursor: pointer; font-weight: bold;}
+        .lista-item { border-bottom: 1px solid var(--line); padding: 12px 10px; display: flex; justify-content: space-between; align-items: center; gap: 15px; flex-wrap: wrap;}
+        .lista-item:hover { background-color: var(--paper); }
+        .detalhe-tag { display: inline-flex; align-items: center; background: var(--paper-dim); padding: 3px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; color: var(--olive); margin-right: 6px; margin-bottom: 4px;}
+
+        .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+        .chart-card { background: #ffffff; border-radius: 8px; padding: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); border: 1px solid var(--line);}
+        .chart-card.full-width { grid-column: 1 / -1; }
+        .chart-card h3 { font-family: 'Fraunces', serif; font-size: 16px; font-weight: 600; color: var(--pine-deep); margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--line); padding-bottom: 10px;}
+        .chart-card h3 span { font-family: 'Inter', sans-serif; font-size: 11px; color: var(--olive); font-weight: 600; background: var(--paper); padding: 4px 8px; border-radius: 4px;}
+        .chart-container { position: relative; height: 300px; width: 100%; }
+
+        /* Tabelas Auxiliares */
+        .data-list { display: flex; flex-direction: column; max-height: 250px; overflow-y: auto; padding-right: 5px;}
+        .data-item { display: flex; justify-content: space-between; align-items: center; padding: 12px 10px; border-bottom: 1px solid var(--line); cursor: pointer; transition: 0.2s; }
+        .data-item:hover { background: var(--paper); padding-left: 15px; }
+
+        #loading { position: fixed; inset: 0; background: rgba(250,247,241,0.95); z-index: 9999; display: flex; flex-direction: column; align-items: center; justify-content: center;}
+        .spinner { border: 4px solid var(--line); border-top: 4px solid var(--pine); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin-bottom: 16px;}
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
 <body>
 
-<header>
-  <h1>Piemonte · Analytics</h1>
-  <div class="header-actions">
-    <button class="btn-voltar" onclick="window.location.href='dashboard.html'">‹ Voltar ao Caixa</button>
-    <button id="btnLogout">Sair</button>
-  </div>
-</header>
-
-<main>
-  <div class="filters">
-    <div class="filter-group">
-      <label>Data Inicial</label>
-      <input type="date" id="dataInicio">
-    </div>
-    <div class="filter-group">
-      <label>Data Final</label>
-      <input type="date" id="dataFim">
-    </div>
-    <button class="btn-gerar" id="btnFiltrar">Atualizar Dados</button>
-    
-    <div class="export-btns">
-      <button class="btn-export" id="btnPdf">📄 PDF</button>
-      <button class="btn-export" id="btnExcel">📊 Excel</button>
-    </div>
-  </div>
-
-  <div class="kpi-grid">
-    <div class="kpi-card">
-      <div class="label">Receita Bruta</div>
-      <div class="value" id="kpiReceita">R$ 0,00</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">Gastos Operacionais</div>
-      <div class="value negativo" id="kpiGastos">R$ 0,00</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">Lucro Líquido</div>
-      <div class="value" id="kpiLucro">R$ 0,00</div>
-    </div>
-    <div class="kpi-card">
-      <div class="label">Ticket Médio (Est.)</div>
-      <div class="value" id="kpiTicket">R$ 0,00</div>
-    </div>
-  </div>
-
-  <div class="charts-grid">
-    <div class="chart-container" style="grid-column: 1 / -1;">
-      <h3>Receitas vs Gastos (Linha do Tempo)</h3>
-      <div class="canvas-wrapper">
-        <canvas id="chartFluxo"></canvas>
-      </div>
-    </div>
-    
-    <div class="chart-container">
-      <h3>Origem da Receita</h3>
-      <div class="canvas-wrapper">
-        <canvas id="chartOrigem"></canvas>
-      </div>
+    <div id="loading">
+        <div class="spinner"></div>
+        <h2 style="color: var(--pine); font-family: 'Fraunces', serif;">Extraindo Big Data Piemonte...</h2>
     </div>
 
-    <div class="chart-container">
-      <h3>Distribuição de Gastos</h3>
-      <div class="canvas-wrapper">
-        <canvas id="chartDespesas"></canvas>
-      </div>
+    <!-- NAVBAR[cite: 7] -->
+    <div class="navbar">
+        <h1>📊 Piemonte Analytics PRO</h1>
+        <div class="nav-home-wrap">
+            <a href="dashboard.html" class="btn-home">🏠 Ir para o Caixa</a>
+        </div>
+        <div class="nav-actions">
+            <button class="btn-reset-nav" onclick="resetarFiltros()">🧹 Limpar Visão</button>
+            <button id="btnLogout" class="btn-voltar">Sair</button>
+        </div>
     </div>
 
-    <div class="chart-container" style="grid-column: 1 / -1;">
-      <h3>Análise de Contexto (Vendas por Clima)</h3>
-      <div class="canvas-wrapper" style="height: 250px;">
-        <canvas id="chartContexto"></canvas>
-      </div>
+    <div class="container">
+        <!-- HEADER e EXPORT[cite: 7] -->
+        <div class="page-header">
+            <div>
+                <h2>Inteligência & Desempenho Operacional</h2>
+                <p style="color: var(--olive); font-size: 13px; margin-top: 4px;">Raio-X financeiro cruzado com variáveis de contexto do restaurante.</p>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn-export btn-excel" onclick="exportarExcel()">📊 Exportar DRE (Excel)</button>
+            </div>
+        </div>
+
+        <!-- ALERTAS INTELIGENTES[cite: 7] -->
+        <div id="containerAlertas"></div>
+
+        <!-- FILTROS AVANÇADOS[cite: 7] -->
+        <div class="filtros-avancados">
+            <div class="filtro-item" style="flex: 2;">
+                <label>Mês de Operação</label>
+                <select id="filtroMes" onchange="aplicarFiltros()"><option value="todos">Todo o Período</option></select>
+            </div>
+            <div class="filtro-item">
+                <label>Turno</label>
+                <select id="filtroTurno" onchange="aplicarFiltros()">
+                    <option value="todos">Ambos os Turnos</option>
+                    <option value="Dia">☀️ Dia</option>
+                    <option value="Noite">🌙 Noite</option>
+                </select>
+            </div>
+            <div class="filtro-item">
+                <label>Modalidade</label>
+                <select id="filtroModalidade" onchange="aplicarFiltros()">
+                    <option value="todos">Todas Modalidades</option>
+                    <option value="Salão">🍽️ Salão</option>
+                    <option value="Tele">🛵 Tele-entrega</option>
+                </select>
+            </div>
+            <div class="filtro-item">
+                <label>Clima (Contexto)</label>
+                <select id="filtroClima" onchange="aplicarFiltros()">
+                    <option value="todos">Qualquer Clima</option>
+                    <option value="Chuva">🌧️ Chuva</option>
+                    <option value="Frio">❄️ Frio</option>
+                    <option value="Quente">☀️ Quente</option>
+                    <option value="Agradável">⛅ Agradável</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- KPI GRID DRILL-DOWN[cite: 7] -->
+        <div class="kpi-grid">
+            <div class="kpi-card receita" onclick="abrirListaKPI('entradas', 'Receita Bruta Gerada', this)">
+                <div class="kpi-titulo">Receita Bruta</div>
+                <div class="kpi-valor" id="kpiReceita" style="color: var(--green-ok);">R$ 0,00</div>
+            </div>
+            <div class="kpi-card gasto" onclick="abrirListaKPI('gastos', 'Gastos Operacionais', this)">
+                <div class="kpi-titulo">Despesas / Gastos</div>
+                <div class="kpi-valor" id="kpiGastos" style="color: var(--wine);">R$ 0,00</div>
+            </div>
+            <div class="kpi-card lucro">
+                <div class="kpi-titulo">Lucro Líquido</div>
+                <div class="kpi-valor" id="kpiLucro">R$ 0,00</div>
+            </div>
+            <div class="kpi-card ticket">
+                <div class="kpi-titulo">Ticket Médio (Est.)</div>
+                <div class="kpi-valor" id="kpiTicket" style="color: var(--gold);">R$ 0,00</div>
+            </div>
+            <div class="kpi-card volume">
+                <div class="kpi-titulo">Volume / Pedidos Totais</div>
+                <div class="kpi-valor" id="kpiQtd" style="color: var(--olive);">0</div>
+            </div>
+        </div>
+
+        <!-- SESSÃO LISTA OCULTA[cite: 7] -->
+        <div class="secao-lista" id="secaoLista">
+            <h3>
+                <span id="tituloLista">Detalhamento</span> 
+                <button type="button" class="btn-fechar-lista" onclick="fecharLista()">✕ Fechar Tabela</button>
+            </h3>
+            <div id="containerFiltrosAtivos" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px;"></div>
+            <div id="containerItensLista" style="max-height: 400px; overflow-y: auto;"></div>
+        </div>
+
+        <!-- GRÁFICOS[cite: 7] -->
+        <div class="charts-grid">
+            <div class="chart-card full-width">
+                <h3>📈 DRE Diário: Receitas vs Gastos <span>Evolução do Saldo</span></h3>
+                <div class="chart-container" style="height: 350px;"><canvas id="graficoDRE"></canvas></div>
+            </div>
+
+            <div class="chart-card">
+                <h3>🍽️ Origem da Receita (Modalidade)</h3>
+                <div class="chart-container"><canvas id="graficoModalidade"></canvas></div>
+            </div>
+
+            <div class="chart-card">
+                <h3>💳 Formas de Pagamento</h3>
+                <div class="chart-container"><canvas id="graficoPagamento"></canvas></div>
+            </div>
+
+            <div class="chart-card full-width">
+                <h3 style="cursor:pointer;" onclick="toggleSecao('secaoFornecedores', 'btnToggleForn')">
+                    🚚 Top Parceiros Financeiros (Quem recebe mais?)
+                    <button class="btn-export" style="padding:4px 8px; font-size:11px;" id="btnToggleForn">🔽 Mostrar Lista</button>
+                </h3>
+                <div id="secaoFornecedores" style="display:none; margin-top:15px; border-top: 1px solid var(--line); padding-top: 10px;">
+                    <div class="data-list" id="listaFornecedores"></div>
+                </div>
+            </div>
+
+            <div class="chart-card full-width">
+                <h3>🌧️ Inteligência de Contexto: Receita Média vs Clima <span>Como o tempo afeta as vendas?</span></h3>
+                <div class="chart-container" style="height: 250px;"><canvas id="graficoClima"></canvas></div>
+            </div>
+            
+            <div class="chart-card full-width">
+                <h3>⚡ Feed Financeiro Recente <span>Últimas Movimentações Reais</span></h3>
+                <div class="data-list" id="feedRecente" style="max-height: 200px;"></div>
+            </div>
+        </div>
     </div>
-  </div>
-</main>
 
-<script>
-// ---------- Autenticação ----------
-(async () => {
-  const { data } = await db.auth.getSession();
-  if (!data.session) window.location.href = 'index.html';
-})();
-document.getElementById('btnLogout').addEventListener('click', async () => {
-  await db.auth.signOut(); window.location.href = 'index.html';
-});
+    <script>
+        // Registrar Labels
+        Chart.register(ChartDataLabels);
 
-// ---------- Formatação ----------
-const fmtBRL = (n) => (n || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
-const toDateStr = (d) => { const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0'); return `${y}-${m}-${day}`; };
+        let todasEntradas = [];
+        let todosGastos = [];
+        let todoContexto = [];
+        
+        let entradasFiltradas = [];
+        let gastosFiltrados = [];
+        
+        let chartDRE, chartModalidade, chartPagamento, chartClima;
+        let activeDrill = null; // Filtro em foco no drill-down[cite: 7]
 
-// Datas padrão (Mês atual)
-const hoje = new Date();
-const primeiroDiaMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
-document.getElementById('dataInicio').value = toDateStr(primeiroDiaMes);
-document.getElementById('dataFim').value = toDateStr(hoje);
+        // Inicialização com Supabase Auth
+        window.onload = async function() {
+            const { data } = await db.auth.getSession();
+            if (!data.session) { window.location.href = 'index.html'; return; }
 
-// Variáveis globais para os gráficos
-let chartFluxoObj, chartOrigemObj, chartDespesasObj, chartContextoObj;
-let rawEntradas = [], rawGastos = [], rawContexto = [];
+            document.getElementById('btnLogout').addEventListener('click', async () => {
+                await db.auth.signOut(); window.location.href = 'index.html';
+            });
 
-// ---------- Motor Analítico ----------
-async function carregarDados() {
-  const dataIni = document.getElementById('dataInicio').value;
-  const dataFim = document.getElementById('dataFim').value;
+            await carregarBigData();
+        };
 
-  // Busca paralela no Big Data do Supabase
-  const [resEntradas, resGastos, resContexto] = await Promise.all([
-    db.from('entradas').select('*').gte('data', dataIni).lte('data', dataFim).order('data'),
-    db.from('gastos').select('*').gte('data', dataIni).lte('data', dataFim).order('data'),
-    db.from('contexto_diario').select('*').gte('data', dataIni).lte('data', dataFim)
-  ]);
+        const fmtBRL = (n) => (n || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+        const formatDataBR = (dStr) => { const p = dStr.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; };
+        const extrairMesAno = (dStr) => dStr.substring(0, 7);
 
-  // Filtra operações de cofre para não sujar o DRE
-  rawEntradas = (resEntradas.data || []).filter(e => e.observacao !== 'Iniciar Caixa');
-  rawGastos = (resGastos.data || []).filter(g => !(g.descricao && g.descricao.startsWith('Sangria')));
-  rawContexto = resContexto.data || [];
+        async function carregarBigData() {
+            const [resE, resG, resC] = await Promise.all([
+                db.from('entradas').select('*').order('data', { ascending: false }),
+                db.from('gastos').select(`*, fornecedores(nome), funcionarios(nome), particulares(nome)`).order('data', { ascending: false }),
+                db.from('contexto_diario').select('*')
+            ]);
 
-  processarKPIs();
-  renderizarGraficos();
-}
+            // Filtrar operações de caixa puro para não inflar DRE
+            todasEntradas = (resE.data || []).filter(e => e.observacao !== 'Iniciar Caixa');
+            todosGastos = (resG.data || []).filter(g => !(g.descricao && g.descricao.startsWith('Sangria')));
+            todoContexto = resC.data || [];
 
-function processarKPIs() {
-  let receita = 0, qtdTotal = 0, despesa = 0;
+            popularFiltroMeses();
+            aplicarFiltros();
+            document.getElementById('loading').style.display = 'none';
+        }
 
-  rawEntradas.forEach(e => {
-    receita += Number(e.valor);
-    // Tenta extrair a quantidade se existir na observação (ex: "Dia | Salão | 4 unid.")
-    if(e.observacao && e.observacao.includes('unid.')){
-      const match = e.observacao.match(/\|\s*(\d+)\s*unid\./);
-      if(match) qtdTotal += parseInt(match[1]);
-    }
-  });
+        function popularFiltroMeses() {
+            const selMes = document.getElementById('filtroMes');
+            const mesesSet = new Set();
+            todasEntradas.forEach(e => mesesSet.add(extrairMesAno(e.data)));
+            todosGastos.forEach(g => mesesSet.add(extrairMesAno(g.data)));
 
-  rawGastos.forEach(g => despesa += Number(g.valor));
+            const mesesArray = Array.from(mesesSet).sort().reverse();
+            const nomesMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            
+            mesesArray.forEach(ma => {
+                const p = ma.split('-');
+                selMes.insertAdjacentHTML('beforeend', `<option value="${ma}">${nomesMeses[parseInt(p[1])-1]} ${p[0]}</option>`);
+            });
+            // Auto selecionar mês mais recente
+            if(mesesArray.length > 0) selMes.value = mesesArray[0];
+        }
 
-  const lucro = receita - despesa;
-  const ticket = qtdTotal > 0 ? (receita / qtdTotal) : 0;
+        // Lógica de Filtros Cruzados[cite: 7]
+        window.aplicarFiltros = function(isRefresh = false) {
+            const vMes = document.getElementById('filtroMes').value;
+            const vTurno = document.getElementById('filtroTurno').value;
+            const vMod = document.getElementById('filtroModalidade').value;
+            const vClima = document.getElementById('filtroClima').value;
 
-  document.getElementById('kpiReceita').textContent = fmtBRL(receita);
-  document.getElementById('kpiGastos').textContent = fmtBRL(despesa);
-  
-  const elLucro = document.getElementById('kpiLucro');
-  elLucro.textContent = fmtBRL(lucro);
-  elLucro.parentElement.classList.toggle('positivo', lucro >= 0);
-  elLucro.parentElement.classList.toggle('negativo', lucro < 0);
+            // Dicionário de contexto por data
+            const mapClima = {};
+            todoContexto.forEach(c => mapClima[c.data] = c.clima);
 
-  document.getElementById('kpiTicket').textContent = fmtBRL(ticket);
-}
+            entradasFiltradas = todasEntradas.filter(e => {
+                let passa = true;
+                if(vMes !== 'todos') passa = passa && extrairMesAno(e.data) === vMes;
+                if(vTurno !== 'todos') passa = passa && (e.observacao && e.observacao.includes(vTurno));
+                if(vMod !== 'todos') passa = passa && (e.observacao && e.observacao.includes(vMod));
+                if(vClima !== 'todos') passa = passa && (mapClima[e.data] === vClima);
+                
+                // Active Drill Down (clique nos gráficos)
+                if(activeDrill && activeDrill.tabela === 'entradas') {
+                    if(activeDrill.tipo === 'pagamento') passa = passa && e.forma_pagamento === activeDrill.valor;
+                    if(activeDrill.tipo === 'modalidade') passa = passa && (e.observacao && e.observacao.includes(activeDrill.valor));
+                }
+                return passa;
+            });
 
-function renderizarGraficos() {
-  // Cores da Identidade Visual
-  const cPine = '#1E2A20', cWine = '#8C3B2E', cGold = '#C79A3B', cOlive = '#5E6B45', cBlue = '#2A4B5C';
+            gastosFiltrados = todosGastos.filter(g => {
+                let passa = true;
+                if(vMes !== 'todos') passa = passa && extrairMesAno(g.data) === vMes;
+                // Gastos não tem turno/modalidade atrelado, mas podem ter filtro de clima da data
+                if(vClima !== 'todos') passa = passa && (mapClima[g.data] === vClima);
+                return passa;
+            });
 
-  // 1. Fluxo (Timeline)
-  const mapFluxo = {};
-  rawEntradas.forEach(e => { if(!mapFluxo[e.data]) mapFluxo[e.data] = {r:0, g:0}; mapFluxo[e.data].r += Number(e.valor); });
-  rawGastos.forEach(g => { if(!mapFluxo[g.data]) mapFluxo[g.data] = {r:0, g:0}; mapFluxo[g.data].g += Number(g.valor); });
-  
-  const labelsEixoX = Object.keys(mapFluxo).sort();
-  const dataReceita = labelsEixoX.map(d => mapFluxo[d].r);
-  const dataGasto = labelsEixoX.map(d => mapFluxo[d].g);
+            if(activeDrill && activeDrill.tabela === 'entradas') gastosFiltrados = []; // Se filtrou receita, zera gasto na lista
 
-  if(chartFluxoObj) chartFluxoObj.destroy();
-  chartFluxoObj = new Chart(document.getElementById('chartFluxo'), {
-    type: 'line',
-    data: {
-      labels: labelsEixoX.map(d => d.split('-').reverse().slice(0,2).join('/')),
-      datasets: [
-        { label: 'Receita', data: dataReceita, borderColor: cPine, backgroundColor: cPine, tension: 0.3 },
-        { label: 'Gastos', data: dataGasto, borderColor: cWine, backgroundColor: cWine, tension: 0.3 }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-  });
+            atualizarPainel();
+        };
 
-  // 2. Origem da Receita (Salão vs Tele)
-  let valSalao = 0, valTele = 0;
-  rawEntradas.forEach(e => {
-    if(e.observacao && e.observacao.includes('Salão')) valSalao += Number(e.valor);
-    else if(e.observacao && e.observacao.includes('Tele')) valTele += Number(e.valor);
-  });
+        window.resetarFiltros = function() {
+            document.getElementById('filtroMes').selectedIndex = 0;
+            document.getElementById('filtroTurno').value = 'todos';
+            document.getElementById('filtroModalidade').value = 'todos';
+            document.getElementById('filtroClima').value = 'todos';
+            fecharLista();
+        }
 
-  if(chartOrigemObj) chartOrigemObj.destroy();
-  chartOrigemObj = new Chart(document.getElementById('chartOrigem'), {
-    type: 'doughnut',
-    data: {
-      labels: ['Salão', 'Tele-entrega'],
-      datasets: [{ data: [valSalao, valTele], backgroundColor: [cPine, cGold] }]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-  });
+        function extrairQtd(obs) {
+            if(!obs) return 0;
+            const match = obs.match(/\|\s*(\d+)\s*unid\./);
+            return match ? parseInt(match[1]) : 0;
+        }
 
-  // 3. Distribuição de Gastos
-  const catGastos = {};
-  rawGastos.forEach(g => {
-    const cat = g.categoria.toUpperCase();
-    catGastos[cat] = (catGastos[cat] || 0) + Number(g.valor);
-  });
+        // Atualização de KPIs, Gráficos e Alertas[cite: 7]
+        function atualizarPainel() {
+            let totRec = 0, totGas = 0, qtdPed = 0;
+            
+            entradasFiltradas.forEach(e => { totRec += Number(e.valor); qtdPed += extrairQtd(e.observacao); });
+            gastosFiltrados.forEach(g => { totGas += Number(g.valor); });
 
-  if(chartDespesasObj) chartDespesasObj.destroy();
-  chartDespesasObj = new Chart(document.getElementById('chartDespesas'), {
-    type: 'pie',
-    data: {
-      labels: Object.keys(catGastos),
-      datasets: [{ data: Object.values(catGastos), backgroundColor: [cWine, cOlive, cBlue, cGold] }]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-  });
+            const lucro = totRec - totGas;
+            const tkt = qtdPed > 0 ? totRec / qtdPed : 0;
 
-  // 4. Receita por Clima (Cruzamento de Dados)
-  const mapClima = {};
-  rawContexto.forEach(c => { if(c.clima) mapClima[c.data] = c.clima; });
-  
-  const aggClima = {};
-  rawEntradas.forEach(e => {
-    const clima = mapClima[e.data] || 'Não Informado';
-    aggClima[clima] = (aggClima[clima] || 0) + Number(e.valor);
-  });
+            document.getElementById('kpiReceita').textContent = fmtBRL(totRec);
+            document.getElementById('kpiGastos').textContent = fmtBRL(totGas);
+            document.getElementById('kpiLucro').textContent = fmtBRL(lucro);
+            document.getElementById('kpiLucro').style.color = lucro >= 0 ? 'var(--blue-info)' : 'var(--wine)';
+            document.getElementById('kpiTicket').textContent = fmtBRL(tkt);
+            document.getElementById('kpiQtd').textContent = qtdPed;
 
-  if(chartContextoObj) chartContextoObj.destroy();
-  chartContextoObj = new Chart(document.getElementById('chartContexto'), {
-    type: 'bar',
-    data: {
-      labels: Object.keys(aggClima),
-      datasets: [{ label: 'Faturamento por Clima', data: Object.values(aggClima), backgroundColor: cBlue }]
-    },
-    options: { responsive: true, maintainAspectRatio: false }
-  });
-}
+            // Alertas Inteligentes
+            const containerAlerta = document.getElementById('containerAlertas');
+            let htmlAlerta = '';
+            if (lucro < 0 && totRec > 0) {
+                htmlAlerta += `<div class="alerta-box alerta-critico">🚨 Atenção: Sua operação fechou no vermelho (Prejuízo) com os filtros atuais selecionados.</div>`;
+            }
+            let diasSemContexto = 0;
+            const datasEntradas = new Set(entradasFiltradas.map(e => e.data));
+            const mapC = {}; todoContexto.forEach(c => mapC[c.data] = c.clima);
+            datasEntradas.forEach(d => { if(!mapC[d]) diasSemContexto++; });
+            if (diasSemContexto > 0) {
+                htmlAlerta += `<div class="alerta-box alerta-aviso">💡 Dica de Inteligência: Existem ${diasSemContexto} dias operados sem o "Clima" preenchido no caixa. Preencha para melhorar o gráfico preditivo.</div>`;
+            }
+            containerAlerta.innerHTML = htmlAlerta;
 
-// ---------- Exportações ----------
+            desenharGraficos();
+            desenharTabelas();
+        }
 
-// Exportar para PDF (Usa a janela de impressão nativa formatada via CSS)
-document.getElementById('btnPdf').addEventListener('click', () => {
-  window.print();
-});
+        // Renderização dos Gráficos com Chart.js[cite: 7]
+        function desenharGraficos() {
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            const hoverCursor = (e, el) => { e.native.target.style.cursor = el[0] ? 'pointer' : 'default'; };
 
-// Exportar para Excel (Cruza todos os dados em abas diferentes)
-document.getElementById('btnExcel').addEventListener('click', () => {
-  const wb = XLSX.utils.book_new();
+            // 1. DRE (Linha)
+            const mapDre = {};
+            entradasFiltradas.forEach(e => { if(!mapDre[e.data]) mapDre[e.data]={r:0,g:0}; mapDre[e.data].r += Number(e.valor); });
+            gastosFiltrados.forEach(e => { if(!mapDre[e.data]) mapDre[e.data]={r:0,g:0}; mapDre[e.data].g += Number(e.valor); });
+            const diasOrdenados = Object.keys(mapDre).sort();
+            
+            if(chartDRE) chartDRE.destroy();
+            chartDRE = new Chart(document.getElementById('graficoDRE'), {
+                type: 'bar',
+                data: {
+                    labels: diasOrdenados.map(formatDataBR),
+                    datasets: [
+                        { label: 'Receita', data: diasOrdenados.map(d => mapDre[d].r), backgroundColor: '#3F6B44', borderRadius: 4 },
+                        { label: 'Gasto', data: diasOrdenados.map(d => mapDre[d].g), backgroundColor: '#8C3B2E', borderRadius: 4 }
+                    ]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { datalabels:{display:false} } }
+            });
 
-  // Tratamento da aba Entradas
-  const entradasPlanilha = rawEntradas.map(e => ({
-    Data: e.data,
-    Pagamento: e.forma_pagamento.toUpperCase(),
-    Detalhes: e.observacao,
-    Valor: Number(e.valor)
-  }));
-  const wsEntradas = XLSX.utils.json_to_sheet(entradasPlanilha);
-  XLSX.utils.book_append_sheet(wb, wsEntradas, "Receitas");
+            // 2. Pagamento
+            const pMap = {}; entradasFiltradas.forEach(e => pMap[e.forma_pagamento] = (pMap[e.forma_pagamento]||0) + Number(e.valor));
+            if(chartPagamento) chartPagamento.destroy();
+            chartPagamento = new Chart(document.getElementById('graficoPagamento'), {
+                type: 'doughnut',
+                data: { labels: Object.keys(pMap).map(k => k.toUpperCase()), datasets: [{ data: Object.values(pMap), backgroundColor: ['#1E2A20', '#C79A3B', '#2A4B5C', '#5E6B45'] }] },
+                options: { responsive: true, maintainAspectRatio: false, onHover: hoverCursor,
+                    onClick: (e, elements, chart) => { if(elements[0]){ lidarCliqueGrafico('entradas', 'pagamento', Object.keys(pMap)[elements[0].index]); } }
+                }
+            });
 
-  // Tratamento da aba Gastos
-  const gastosPlanilha = rawGastos.map(g => ({
-    Data: g.data,
-    Categoria: g.categoria.toUpperCase(),
-    Descricao: g.descricao || '',
-    Valor: Number(g.valor)
-  }));
-  const wsGastos = XLSX.utils.json_to_sheet(gastosPlanilha);
-  XLSX.utils.book_append_sheet(wb, wsGastos, "Despesas");
+            // 3. Modalidade
+            let vS = 0, vT = 0;
+            entradasFiltradas.forEach(e => { if(e.observacao && e.observacao.includes('Salão')) vS += Number(e.valor); if(e.observacao && e.observacao.includes('Tele')) vT += Number(e.valor); });
+            if(chartModalidade) chartModalidade.destroy();
+            chartModalidade = new Chart(document.getElementById('graficoModalidade'), {
+                type: 'pie',
+                data: { labels: ['Salão', 'Tele'], datasets: [{ data: [vS, vT], backgroundColor: ['#C79A3B', '#1E2A20'] }] },
+                options: { responsive: true, maintainAspectRatio: false, onHover: hoverCursor,
+                    onClick: (e, elements) => { if(elements[0]){ lidarCliqueGrafico('entradas', 'modalidade', ['Salão', 'Tele'][elements[0].index]); } }
+                }
+            });
 
-  // Salva o arquivo
-  XLSX.writeFile(wb, `Piemonte_Relatorio_${document.getElementById('dataInicio').value}_a_${document.getElementById('dataFim').value}.xlsx`);
-});
+            // 4. Clima Cruzado
+            const mapClimaGeral = {}; todoContexto.forEach(c => mapClimaGeral[c.data] = c.clima);
+            const aggC = {};
+            todasEntradas.forEach(e => { // Pega todas para base real de média
+                const c = mapClimaGeral[e.data];
+                if(c) {
+                    if(!aggC[c]) aggC[c] = { sum:0, count:0 };
+                    aggC[c].sum += Number(e.valor);
+                    aggC[c].count++; // simplificado, o ideal seria contar os "dias" de chuva
+                }
+            });
+            const cKeys = Object.keys(aggC);
+            if(chartClima) chartClima.destroy();
+            chartClima = new Chart(document.getElementById('graficoClima'), {
+                type: 'bar',
+                data: { labels: cKeys, datasets: [{ label: 'Faturamento Acumulado no Clima', data: cKeys.map(k => aggC[k].sum), backgroundColor: '#2A4B5C', borderRadius: 4 }] },
+                options: { responsive: true, maintainAspectRatio: false }
+            });
+        }
 
-// Inicialização
-document.getElementById('btnFiltrar').addEventListener('click', carregarDados);
-carregarDados();
+        // Tabelas e Feed Auxiliar
+        function desenharTabelas() {
+            // Fornecedores / Maiores Gastos
+            const fMap = {};
+            gastosFiltrados.forEach(g => {
+                let nome = 'Outros / Avulso';
+                if(g.fornecedores) nome = g.fornecedores.nome;
+                else if (g.funcionarios) nome = g.funcionarios.nome;
+                else if (g.particulares) nome = g.particulares.nome;
+                fMap[nome] = (fMap[nome] || 0) + Number(g.valor);
+            });
+            const fKeys = Object.keys(fMap).sort((a,b) => fMap[b] - fMap[a]);
+            document.getElementById('listaFornecedores').innerHTML = fKeys.length === 0 ? '<p style="padding:10px; color:#999;">Sem dados</p>' : fKeys.map((k,i) => `
+                <div class="data-item">
+                    <span style="font-weight:600; color:var(--pine-deep);">${i+1}. ${k}</span>
+                    <span style="font-weight:800; color:var(--wine);">${fmtBRL(fMap[k])}</span>
+                </div>
+            `).join('');
 
-</script>
+            // Feed Recente
+            const tudo = [
+                ...entradasFiltradas.map(e => ({ data: e.created_at, msg: `Entrada: ${e.forma_pagamento.toUpperCase()} (${e.observacao})`, val: Number(e.valor), tipo: 'E' })),
+                ...gastosFiltrados.map(g => ({ data: g.created_at, msg: `Gasto: ${g.categoria.toUpperCase()} ${g.descricao ? '- '+g.descricao : ''}`, val: Number(g.valor), tipo: 'G' }))
+            ].sort((a,b) => new Date(b.data) - new Date(a.data)).slice(0, 10);
+            
+            document.getElementById('feedRecente').innerHTML = tudo.length === 0 ? '<p style="padding:10px; color:#999;">Sem dados</p>' : tudo.map(t => `
+                <div class="data-item" style="border-left: 4px solid ${t.tipo==='E' ? 'var(--green-ok)' : 'var(--wine)'}; background:#fff;">
+                    <div style="display:flex; flex-direction:column; gap:4px;">
+                        <span style="font-size:10px; color:var(--olive); font-weight:700;">${new Date(t.data).toLocaleString('pt-BR')}</span>
+                        <span style="font-size:13px; font-weight:600;">${t.msg}</span>
+                    </div>
+                    <span style="font-weight:800; color:${t.tipo==='E' ? 'var(--green-ok)' : 'var(--wine)'};">${t.tipo==='E'?'+':'-'} ${fmtBRL(t.val)}</span>
+                </div>
+            `).join('');
+        }
+
+        // Lógica de Drill-Down do Gabinete Adaptada[cite: 7]
+        window.abrirListaKPI = function(tipoLista, titulo, cardEl) {
+            document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('ativo'));
+            cardEl.classList.add('ativo');
+            activeDrill = { tabela: tipoLista, tipo: 'kpi', valor: null, label: titulo };
+            
+            document.getElementById('secaoLista').style.display = 'block';
+            document.getElementById('tituloLista').innerHTML = `Detalhamento: ${titulo} <span class="detalhe-tag" style="background:var(--pine); color:white; margin-left:10px;">${tipoLista === 'entradas' ? entradasFiltradas.length : gastosFiltrados.length} regs</span>`;
+            
+            // Chips Ativos
+            document.getElementById('containerFiltrosAtivos').innerHTML = `
+                <span class="detalhe-tag" style="background:var(--paper); border:1px solid var(--gold);">Filtro Ativo: ${titulo} <button style="background:none;border:none;margin-left:5px;cursor:pointer;color:var(--wine);" onclick="fecharLista()">✕</button></span>
+            `;
+
+            const container = document.getElementById('containerItensLista');
+            const lista = tipoLista === 'entradas' ? entradasFiltradas : gastosFiltrados;
+            
+            if(lista.length === 0) {
+                container.innerHTML = '<p style="padding:20px; text-align:center; color:var(--olive);">Nenhum dado encontrado para os filtros selecionados.</p>';
+                return;
+            }
+
+            container.innerHTML = lista.map(item => {
+                const isEntrada = tipoLista === 'entradas';
+                const tagCor = isEntrada ? 'var(--green-ok)' : 'var(--wine)';
+                const tituloH = isEntrada ? item.forma_pagamento.toUpperCase() : item.categoria.toUpperCase();
+                const obs = isEntrada ? item.observacao : (item.descricao || item.observacao || '');
+                return `
+                <div class="lista-item">
+                    <div>
+                        <strong style="color:var(--pine-deep); display:block; margin-bottom:4px;">${tituloH}</strong>
+                        <span class="detalhe-tag">📅 ${formatDataBR(item.data)}</span>
+                        ${obs ? `<span class="detalhe-tag" style="background:#fff;">📝 ${obs}</span>` : ''}
+                    </div>
+                    <strong style="color:${tagCor}; font-size:16px;">${isEntrada?'+':'-'} ${fmtBRL(Number(item.valor))}</strong>
+                </div>
+                `;
+            }).join('');
+            
+            document.getElementById('secaoLista').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        window.lidarCliqueGrafico = function(tabela, tipo, valor) {
+            const tempDiv = document.createElement('div');
+            abrirListaKPI(tabela, `${tipo.toUpperCase()}: ${valor}`, tempDiv);
+            activeDrill = { tabela: tabela, tipo: tipo, valor: valor, label: `${tipo}: ${valor}` };
+            aplicarFiltros(); // Refiltra para mostrar só as fatias do gráfico no sistema inteiro
+        }
+
+        window.fecharLista = function() {
+            document.getElementById('secaoLista').style.display = 'none';
+            document.querySelectorAll('.kpi-card').forEach(c => c.classList.remove('ativo'));
+            activeDrill = null;
+            aplicarFiltros();
+        }
+
+        window.toggleSecao = function(id, btnId) {
+            const el = document.getElementById(id); const btn = document.getElementById(btnId);
+            if(el.style.display === 'none') { el.style.display = 'block'; btn.textContent = '🔼 Esconder'; }
+            else { el.style.display = 'none'; btn.textContent = '🔽 Mostrar Lista'; }
+        }
+
+        // Exportação Avançada Excel (Via SheetJS do Gabinete)[cite: 7]
+        window.exportarExcel = function() {
+            const wb = XLSX.utils.book_new();
+            
+            // Aba Receitas
+            const recWS = XLSX.utils.json_to_sheet(entradasFiltradas.map(e => ({
+                'Data': formatDataBR(e.data),
+                'Forma de Pagamento': e.forma_pagamento.toUpperCase(),
+                'Detalhes / Turno / Modalidade': e.observacao,
+                'Qtd Itens/Mesas': extrairQtd(e.observacao),
+                'Valor (R$)': Number(e.valor)
+            })));
+            XLSX.utils.book_append_sheet(wb, recWS, "Receitas");
+
+            // Aba Despesas
+            const desWS = XLSX.utils.json_to_sheet(gastosFiltrados.map(g => ({
+                'Data': formatDataBR(g.data),
+                'Categoria': g.categoria.toUpperCase(),
+                'Descrição do Gasto': g.descricao || '',
+                'Observação Extra': g.observacao || '',
+                'Valor (R$)': Number(g.valor)
+            })));
+            XLSX.utils.book_append_sheet(wb, desWS, "Despesas");
+
+            XLSX.writeFile(wb, `Piemonte_DRE_${document.getElementById('filtroMes').value}.xlsx`);
+        }
+    </script>
 </body>
 </html>
