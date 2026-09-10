@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piemonte · Caixa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<style>
+  :root{
+    --pine:#1E2A20;
+    --pine-deep:#152018;
+    --paper:#FAF7F1;
+    --paper-dim:#F1ECE1;
+    --ink:#24261F;
+    --wine:#8C3B2E;
+    --wine-dark:#732E23;
+    --olive:#5E6B45;
+    --gold:#C79A3B;
+    --line:#E4DFD3;
+    --green-ok:#3F6B44;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--paper-dim);
+    color:var(--ink);
+    min-height:100vh;
+    padding-bottom:60px;
+  }
+  header{
+    background:var(--pine);
+    color:#fff;
+    padding:16px 20px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  header h1{
+    font-family:'Fraunces',serif;
+    font-weight:600;
+    font-size:1.3rem;
+    margin:0;
+    letter-spacing:0.01em;
+  }
+  header button{
+    background:transparent;
+    border:1px solid rgba(255,255,255,0.35);
+    color:#fff;
+    padding:7px 14px;
+    border-radius:3px;
+    font-family:inherit;
+    font-size:0.8rem;
+    cursor:pointer;
+  }
+  header button:hover{background:rgba(255,255,255,0.1);}
+
+  main{max-width:720px;margin:0 auto;padding:20px 16px;}
+
+  .date-nav{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    margin-bottom:20px;
+  }
+  .date-nav button{
+    background:#fff;
+    border:1px solid var(--line);
+    width:36px;height:36px;
+    border-radius:50%;
+    font-size:1rem;
+    cursor:pointer;
+    color:var(--pine);
+  }
+  .date-nav button:hover{background:var(--paper-dim);}
+  .date-label{
+    text-align:center;
+    min-width:220px;
+  }
+  .date-label .dia{
+    font-family:'Fraunces',serif;
+    font-size:1.15rem;
+    font-weight:600;
+    text-transform:capitalize;
+  }
+  .date-label .hoje-link{
+    display:none;
+    font-size:0.75rem;
+    color:var(--wine);
+    cursor:pointer;
+    margin-top:2px;
+  }
+  .date-label .hoje-link.show{display:block;}
+
+  .summary{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin-bottom:22px;
+  }
+  .sum-card{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:14px 16px;
+  }
+  .sum-card .label{font-size:0.72rem;color:var(--olive);font-weight:500;text-transform:uppercase;letter-spacing:0.03em;}
+  .sum-card .value{font-family:'Fraunces',serif;font-size:1.5rem;font-weight:600;margin-top:4px;}
+  .sum-card.saldo .value{color:var(--green-ok);}
+  .sum-card.gastos .value{color:var(--wine-dark);}
+  .breakdown{
+    grid-column:1 / -1;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .pill-stat{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:6px 12px;
+    font-size:0.78rem;
+    color:var(--ink);
+    display:flex;
+    gap:6px;
+  }
+  .pill-stat b{color:var(--pine);}
+
+  .actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-bottom:26px;
+  }
+  .action-btn{
+    padding:16px 10px;
+    border:none;
+    border-radius:4px;
+    font-family:inherit;
+    font-weight:600;
+    font-size:0.95rem;
+    cursor:pointer;
+    color:#fff;
+  }
+  .action-btn.entrada{background:var(--olive);}
+  .action-btn.entrada:hover{background:#4c5738;}
+  .action-btn.gasto{background:var(--wine);}
+  .action-btn.gasto:hover{background:var(--wine-dark);}
+
+  section.list-section{margin-bottom:24px;}
+  section.list-section h2{
+    font-size:0.85rem;
+    text-transform:uppercase;
+    letter-spacing:0.04em;
+    color:var(--olive);
+    margin:0 0 10px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+  }
+  .row-item{
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:12px 14px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    margin-bottom:6px;
+  }
+  .row-item .desc{font-size:0.9rem;}
+  .row-item .desc .tag{
+    display:inline-block;
+    font-size:0.68rem;
+    text-transform:uppercase;
+    letter-spacing:0.03em;
+    color:var(--olive);
+    margin-right:8px;
+  }
+  .row-item .right{display:flex;align-items:center;gap:12px;}
+  .row-item .valor{font-weight:600;}
+  .row-item .del{
+    background:none;border:none;color:#B4A99A;cursor:pointer;font-size:1rem;padding:2px 4px;
+  }
+  .row-item .del:hover{color:var(--wine);}
+  .empty{color:#A79E8C;font-size:0.85rem;padding:8px 2px;}
+
+  /* modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(21,32,24,0.55);
+    display:none;align-items:flex-end;justify-content:center;z-index:50;
+  }
+  .overlay.show{display:flex;}
+  @media(min-width:560px){
+    .overlay{align-items:center;}
+  }
+  .modal{
+    background:var(--paper);
+    width:100%;max-width:440px;
+    border-radius:10px 10px 0 0;
+    padding:22px 20px 26px;
+    max-height:88vh;overflow-y:auto;
+  }
+  @media(min-width:560px){
+    .modal{border-radius:8px;}
+  }
+  .modal h3{
+    font-family:'Fraunces',serif;font-size:1.2rem;margin:0 0 16px;
+  }
+  .pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+  .pillbtn{
+    flex:1 1 auto;
+    padding:10px 12px;
+    border:1.5px solid var(--line);
+    background:#fff;
+    border-radius:5px;
+    font-family:inherit;font-size:0.85rem;font-weight:500;
+    cursor:pointer;color:var(--ink);
+  }
+  .pillbtn.active{border-color:var(--pine);background:var(--pine);color:#fff;}
+  label{display:block;font-size:0.78rem;font-weight:500;color:var(--olive);margin:14px 0 6px;}
+  input[type=number], input[type=text], select{
+    width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:5px;
+    font-family:inherit;font-size:0.95rem;background:#fff;color:var(--ink);
+  }
+  input:focus, select:focus{outline:none;border-color:var(--wine);}
+  .select-row{display:flex;gap:8px;align-items:center;}
+  .select-row select{flex:1;}
+  .gear-btn{
+    width:42px;height:42px;flex:none;border-radius:5px;border:1px solid var(--line);
+    background:#fff;cursor:pointer;font-size:1.05rem;
+  }
+  .gear-btn:hover{background:var(--paper-dim);}
+  .modal-actions{display:flex;gap:10px;margin-top:22px;}
+  .modal-actions button{flex:1;padding:12px;border:none;border-radius:5px;font-family:inherit;font-weight:600;cursor:pointer;}
+  .btn-cancel{background:transparent;border:1px solid var(--line) !important;color:var(--olive);}
+  .btn-save{background:var(--pine);color:#fff;}
+  .btn-save:disabled{opacity:0.55;}
+  .modal-err{color:var(--wine-dark);font-size:0.82rem;margin-top:10px;min-height:1.1em;}
+
+  .manage-list{margin-top:14px;max-height:220px;overflow-y:auto;}
+  .manage-item{
+    display:flex;justify-content:space-between;align-items:center;
+    padding:9px 4px;border-bottom:1px solid var(--line);font-size:0.88rem;
+  }
+  .manage-item button{background:none;border:none;color:#B4A99A;cursor:pointer;}
+  .manage-item button:hover{color:var(--wine);}
+  .add-row{display:flex;gap:8px;margin-top:12px;}
+  .add-row input{flex:1;}
+  .add-row button{padding:0 16px;border:none;border-radius:5px;background:var(--olive);color:#fff;font-weight:600;cursor:pointer;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Piemonte</h1>
+  <button id="btnLogout">Sair</button>
+</header>
+
+<main>
+  <div class="date-nav">
+    <button id="prevDay">‹</button>
+    <div class="date-label">
+      <div class="dia" id="diaLabel">—</div>
+      <div class="hoje-link" id="hojeLink">voltar para hoje</div>
+    </div>
+    <button id="nextDay">›</button>
+  </div>
+
+  <div class="summary">
+    <div class="sum-card">
+      <div class="label">Total entradas</div>
+      <div class="value" id="totalEntradas">R$ 0,00</div>
+    </div>
+    <div class="sum-card gastos">
+      <div class="label">Total gastos</div>
+      <div class="value" id="totalGastos">R$ 0,00</div>
+    </div>
+    <div class="sum-card saldo" style="grid-column:1 / -1;">
+      <div class="label">Saldo do dia</div>
+      <div class="value" id="saldoDia">R$ 0,00</div>
+    </div>
+    <div class="breakdown" id="breakdown"></div>
+  </div>
+
+  <div class="actions">
+    <button class="action-btn entrada" id="btnAbrirEntrada">+ Dinheiro no caixa</button>
+    <button class="action-btn gasto" id="btnAbrirGasto">+ Gasto</button>
+  </div>
+
+  <section class="list-section">
+    <h2>Entradas</h2>
+    <div id="listaEntradas"></div>
+  </section>
+
+  <section class="list-section">
+    <h2>Gastos</h2>
+    <div id="listaGastos"></div>
+  </section>
+</main>
+
+<!-- ===== Modal: Entrada ===== -->
+<div class="overlay" id="overlayEntrada">
+  <div class="modal">
+    <h3>Dinheiro no caixa</h3>
+    <label>Forma de pagamento</label>
+    <div class="pillrow" id="formaPagamentoPills">
+      <button class="pillbtn" data-fp="dinheiro">Dinheiro</button>
+      <button class="pillbtn" data-fp="cartao">Cartão</button>
+      <button class="pillbtn" data-fp="ifood">iFood</button>
+      <button class="pillbtn" data-fp="99">99</button>
+    </div>
+    <label>Valor (R$)</label>
+    <input type="number" id="entradaValor" inputmode="decimal" step="0.01" min="0" placeholder="0,00">
+    <div class="modal-err" id="entradaErr"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" data-close="overlayEntrada">Cancelar</button>
+      <button class="btn-save" id="btnSalvarEntrada">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Gasto ===== -->
+<div class="overlay" id="overlayGasto">
+  <div class="modal">
+    <h3>Novo gasto</h3>
+    <label>Categoria</label>
+    <div class="pillrow" id="categoriaPills">
+      <button class="pillbtn" data-cat="fornecedor">Fornecedor</button>
+      <button class="pillbtn" data-cat="funcionario">Funcionário</button>
+      <button class="pillbtn" data-cat="particular">Particular</button>
+      <button class="pillbtn" data-cat="outros">Outros</button>
+    </div>
+
+    <div id="gastoSelectWrap" style="display:none;">
+      <label id="gastoSelectLabel">Selecionar</label>
+      <div class="select-row">
+        <select id="gastoSelect"></select>
+        <button class="gear-btn" id="btnGerenciarLista" title="Gerenciar lista">⚙</button>
+      </div>
+    </div>
+
+    <div id="gastoOutrosWrap" style="display:none;">
+      <label>Descrição</label>
+      <input type="text" id="gastoDescricao" placeholder="Ex: manutenção da geladeira">
+    </div>
+
+    <label>Valor (R$)</label>
+    <input type="number" id="gastoValor" inputmode="decimal" step="0.01" min="0" placeholder="0,00">
+    <div class="modal-err" id="gastoErr"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" data-close="overlayGasto">Cancelar</button>
+      <button class="btn-save" id="btnSalvarGasto">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: Gerenciar lista (fornecedores/funcionarios/particulares) ===== -->
+<div class="overlay" id="overlayGerenciar">
+  <div class="modal">
+    <h3 id="gerenciarTitulo">Gerenciar</h3>
+    <div class="manage-list" id="gerenciarLista"></div>
+    <div class="add-row">
+      <input type="text" id="gerenciarNovoNome" placeholder="Nome">
+      <button id="btnGerenciarAdicionar">Adicionar</button>
+    </div>
+    <div class="modal-err" id="gerenciarErr"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" data-close="overlayGerenciar" style="flex:none;width:100%;">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- Auth guard ----------
+let currentUser = null;
+(async () => {
+  const { data } = await db.auth.getSession();
+  if (!data.session) { window.location.href = 'index.html'; return; }
+  currentUser = data.session.user;
+})();
+document.getElementById('btnLogout').addEventListener('click', async () => {
+  await db.auth.signOut();
+  window.location.href = 'index.html';
+});
+
+// ---------- Helpers ----------
+const fmtBRL = (n) => (n || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+const toDateStr = (d) => {
+  const y = d.getFullYear(), m = String(d.getMonth()+1).padStart(2,'0'), day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+};
+const isSameDay = (a,b) => toDateStr(a) === toDateStr(b);
+
+let currentDate = new Date();
+
+function renderDateLabel(){
+  const label = currentDate.toLocaleDateString('pt-BR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  document.getElementById('diaLabel').textContent = label;
+  document.getElementById('hojeLink').classList.toggle('show', !isSameDay(currentDate, new Date()));
+}
+document.getElementById('prevDay').addEventListener('click', () => { currentDate.setDate(currentDate.getDate()-1); refresh(); });
+document.getElementById('nextDay').addEventListener('click', () => { currentDate.setDate(currentDate.getDate()+1); refresh(); });
+document.getElementById('hojeLink').addEventListener('click', () => { currentDate = new Date(); refresh(); });
+
+// ---------- Cached lists ----------
+let cache = { fornecedor: [], funcionario: [], particular: [] };
+const tableFor = { fornecedor:'fornecedores', funcionario:'funcionarios', particular:'particulares' };
+const labelFor = { fornecedor:'Fornecedor', funcionario:'Funcionário', particular:'Particular' };
+
+async function loadCache(){
+  for (const cat of ['fornecedor','funcionario','particular']){
+    const { data } = await db.from(tableFor[cat]).select('*').eq('ativo', true).order('nome');
+    cache[cat] = data || [];
+  }
+}
+
+// ---------- Load & render day ----------
+async function refresh(){
+  renderDateLabel();
+  const dateStr = toDateStr(currentDate);
+
+  const [{ data: entradas }, { data: gastos }] = await Promise.all([
+    db.from('entradas').select('*').eq('data', dateStr).order('created_at', { ascending:false }),
+    db.from('gastos').select('*').eq('data', dateStr).order('created_at', { ascending:false })
+  ]);
+
+  renderSummary(entradas || [], gastos || []);
+  renderListaEntradas(entradas || []);
+  renderListaGastos(gastos || []);
+}
+
+const fpLabel = { dinheiro:'Dinheiro', cartao:'Cartão', ifood:'iFood', '99':'99' };
+
+function renderSummary(entradas, gastos){
+  const totalEntradas = entradas.reduce((s,e) => s + Number(e.valor), 0);
+  const totalGastos = gastos.reduce((s,g) => s + Number(g.valor), 0);
+  document.getElementById('totalEntradas').textContent = fmtBRL(totalEntradas);
+  document.getElementById('totalGastos').textContent = fmtBRL(totalGastos);
+  document.getElementById('saldoDia').textContent = fmtBRL(totalEntradas - totalGastos);
+
+  const byForma = {};
+  entradas.forEach(e => byForma[e.forma_pagamento] = (byForma[e.forma_pagamento]||0) + Number(e.valor));
+  const breakdown = document.getElementById('breakdown');
+  breakdown.innerHTML = Object.keys(fpLabel).map(fp =>
+    `<div class="pill-stat">${fpLabel[fp]} <b>${fmtBRL(byForma[fp]||0)}</b></div>`
+  ).join('');
+}
+
+function renderListaEntradas(entradas){
+  const el = document.getElementById('listaEntradas');
+  if (!entradas.length){ el.innerHTML = '<div class="empty">Nenhuma entrada lançada.</div>'; return; }
+  el.innerHTML = entradas.map(e => `
+    <div class="row-item">
+      <div class="desc"><span class="tag">${fpLabel[e.forma_pagamento]}</span></div>
+      <div class="right">
+        <span class="valor">${fmtBRL(e.valor)}</span>
+        <button class="del" data-del-entrada="${e.id}">✕</button>
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('[data-del-entrada]').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('Excluir esta entrada?')) return;
+    await db.from('entradas').delete().eq('id', btn.dataset.delEntrada);
+    refresh();
+  }));
+}
+
+function nomeGasto(g){
+  if (g.categoria === 'outros') return g.descricao || 'Outros';
+  const cat = g.categoria;
+  const item = cache[cat]?.find(i => i.id === g[cat+'_id']);
+  return item ? item.nome : '(removido)';
+}
+
+function renderListaGastos(gastos){
+  const el = document.getElementById('listaGastos');
+  if (!gastos.length){ el.innerHTML = '<div class="empty">Nenhum gasto lançado.</div>'; return; }
+  el.innerHTML = gastos.map(g => `
+    <div class="row-item">
+      <div class="desc"><span class="tag">${labelFor[g.categoria] || 'Outros'}</span>${nomeGasto(g)}</div>
+      <div class="right">
+        <span class="valor">${fmtBRL(g.valor)}</span>
+        <button class="del" data-del-gasto="${g.id}">✕</button>
+      </div>
+    </div>`).join('');
+  el.querySelectorAll('[data-del-gasto]').forEach(btn => btn.addEventListener('click', async () => {
+    if (!confirm('Excluir este gasto?')) return;
+    await db.from('gastos').delete().eq('id', btn.dataset.delGasto);
+    refresh();
+  }));
+}
+
+// ---------- Modal: Entrada ----------
+const overlayEntrada = document.getElementById('overlayEntrada');
+let formaSelecionada = null;
+document.getElementById('btnAbrirEntrada').addEventListener('click', () => {
+  formaSelecionada = null;
+  document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
+  document.getElementById('entradaValor').value = '';
+  document.getElementById('entradaErr').textContent = '';
+  overlayEntrada.classList.add('show');
+});
+document.getElementById('formaPagamentoPills').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pillbtn'); if (!btn) return;
+  document.querySelectorAll('#formaPagamentoPills .pillbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  formaSelecionada = btn.dataset.fp;
+});
+document.getElementById('btnSalvarEntrada').addEventListener('click', async () => {
+  const valor = parseFloat(document.getElementById('entradaValor').value);
+  const err = document.getElementById('entradaErr');
+  if (!formaSelecionada) { err.textContent = 'Escolha a forma de pagamento.'; return; }
+  if (!valor || valor <= 0) { err.textContent = 'Informe um valor válido.'; return; }
+  err.textContent = '';
+  await db.from('entradas').insert({
+    data: toDateStr(currentDate),
+    forma_pagamento: formaSelecionada,
+    valor,
+    created_by: currentUser?.id
+  });
+  overlayEntrada.classList.remove('show');
+  refresh();
+});
+
+// ---------- Modal: Gasto ----------
+const overlayGasto = document.getElementById('overlayGasto');
+let categoriaSelecionada = null;
+document.getElementById('btnAbrirGasto').addEventListener('click', () => {
+  categoriaSelecionada = null;
+  document.querySelectorAll('#categoriaPills .pillbtn').forEach(b => b.classList.remove('active'));
+  document.getElementById('gastoSelectWrap').style.display = 'none';
+  document.getElementById('gastoOutrosWrap').style.display = 'none';
+  document.getElementById('gastoValor').value = '';
+  document.getElementById('gastoDescricao').value = '';
+  document.getElementById('gastoErr').textContent = '';
+  overlayGasto.classList.add('show');
+});
+document.getElementById('categoriaPills').addEventListener('click', (e) => {
+  const btn = e.target.closest('.pillbtn'); if (!btn) return;
+  document.querySelectorAll('#categoriaPills .pillbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  categoriaSelecionada = btn.dataset.cat;
+
+  const selectWrap = document.getElementById('gastoSelectWrap');
+  const outrosWrap = document.getElementById('gastoOutrosWrap');
+  if (categoriaSelecionada === 'outros'){
+    selectWrap.style.display = 'none';
+    outrosWrap.style.display = 'block';
+  } else {
+    outrosWrap.style.display = 'none';
+    selectWrap.style.display = 'block';
+    document.getElementById('gastoSelectLabel').textContent = labelFor[categoriaSelecionada];
+    populateSelect(categoriaSelecionada);
+  }
+});
+function populateSelect(cat){
+  const sel = document.getElementById('gastoSelect');
+  const items = cache[cat] || [];
+  sel.innerHTML = items.length
+    ? items.map(i => `<option value="${i.id}">${i.nome}</option>`).join('')
+    : `<option value="">Nenhum cadastrado — use a engrenagem</option>`;
+}
+document.getElementById('btnGerenciarLista').addEventListener('click', () => {
+  if (!categoriaSelecionada || categoriaSelecionada === 'outros') return;
+  abrirGerenciar(categoriaSelecionada);
+});
+document.getElementById('btnSalvarGasto').addEventListener('click', async () => {
+  const valor = parseFloat(document.getElementById('gastoValor').value);
+  const err = document.getElementById('gastoErr');
+  if (!categoriaSelecionada) { err.textContent = 'Escolha a categoria.'; return; }
+  if (!valor || valor <= 0) { err.textContent = 'Informe um valor válido.'; return; }
+
+  const payload = { data: toDateStr(currentDate), categoria: categoriaSelecionada, valor, created_by: currentUser?.id };
+
+  if (categoriaSelecionada === 'outros'){
+    const desc = document.getElementById('gastoDescricao').value.trim();
+    if (!desc) { err.textContent = 'Descreva o gasto.'; return; }
+    payload.descricao = desc;
+  } else {
+    const selId = document.getElementById('gastoSelect').value;
+    if (!selId) { err.textContent = 'Selecione um item (ou cadastre um na engrenagem).'; return; }
+    payload[categoriaSelecionada + '_id'] = selId;
+  }
+
+  err.textContent = '';
+  await db.from('gastos').insert(payload);
+  overlayGasto.classList.remove('show');
+  refresh();
+});
+
+// ---------- Modal: Gerenciar lista ----------
+const overlayGerenciar = document.getElementById('overlayGerenciar');
+let gerenciarCatAtual = null;
+async function abrirGerenciar(cat){
+  gerenciarCatAtual = cat;
+  document.getElementById('gerenciarTitulo').textContent = 'Gerenciar ' + labelFor[cat].toLowerCase() + 's';
+  document.getElementById('gerenciarNovoNome').value = '';
+  document.getElementById('gerenciarErr').textContent = '';
+  renderGerenciarLista();
+  overlayGerenciar.classList.add('show');
+}
+function renderGerenciarLista(){
+  const el = document.getElementById('gerenciarLista');
+  const items = cache[gerenciarCatAtual] || [];
+  el.innerHTML = items.length
+    ? items.map(i => `<div class="manage-item">${i.nome}<button data-remove="${i.id}">remover</button></div>`).join('')
+    : '<div class="empty">Nada cadastrado ainda.</div>';
+  el.querySelectorAll('[data-remove]').forEach(btn => btn.addEventListener('click', async () => {
+    await db.from(tableFor[gerenciarCatAtual]).update({ ativo:false }).eq('id', btn.dataset.remove);
+    await loadCache();
+    renderGerenciarLista();
+    if (categoriaSelecionada === gerenciarCatAtual) populateSelect(gerenciarCatAtual);
+  }));
+}
+document.getElementById('btnGerenciarAdicionar').addEventListener('click', async () => {
+  const nome = document.getElementById('gerenciarNovoNome').value.trim();
+  const err = document.getElementById('gerenciarErr');
+  if (!nome) { err.textContent = 'Digite um nome.'; return; }
+  err.textContent = '';
+  await db.from(tableFor[gerenciarCatAtual]).insert({ nome });
+  document.getElementById('gerenciarNovoNome').value = '';
+  await loadCache();
+  renderGerenciarLista();
+  if (categoriaSelecionada === gerenciarCatAtual) populateSelect(gerenciarCatAtual);
+});
+
+// ---------- Close modals ----------
+document.querySelectorAll('[data-close]').forEach(btn => {
+  btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('show'));
+});
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.remove('show'); });
+});
+
+// ---------- Init ----------
+(async () => {
+  await loadCache();
+  await refresh();
+})();
+</script>
+
+</body>
+</html>
