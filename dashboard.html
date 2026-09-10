@@ -25,8 +25,21 @@
   main{max-width:720px; margin:0 auto; padding:20px 16px;}
 
   .month-summary { background:var(--pine-deep); color:#fff; border-radius:6px; padding:16px 20px; margin-bottom:24px; box-shadow:0 10px 20px -10px rgba(0,0,0,0.3); }
-  .ms-title { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:#B4C4B7; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;}
-  .ms-title span { display:flex; align-items:center; gap:6px; }
+  .ms-title { font-size:0.8rem; text-transform:uppercase; letter-spacing:0.05em; color:#B4C4B7; margin-bottom:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;}
+  .ms-title > span.ms-label { display:flex; align-items:center; gap:6px; }
+  .ms-controls { display:flex; align-items:center; gap:6px; text-transform:none; letter-spacing:0; }
+  .ms-controls select{
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.25); color:#fff;
+    padding:6px 8px; border-radius:4px; font-family:'Inter',sans-serif; font-size:0.78rem; cursor:pointer;
+  }
+  .ms-controls select:focus{outline:none; border-color:var(--gold);}
+  .ms-controls select option{ color:var(--ink); }
+  .btn-mes-atual{
+    display:none; background:transparent; border:1px solid rgba(255,255,255,0.3); color:#EAD9A8;
+    padding:6px 10px; border-radius:4px; font-family:'Inter',sans-serif; font-size:0.72rem; cursor:pointer; white-space:nowrap;
+  }
+  .btn-mes-atual.show{ display:inline-block; }
+  .btn-mes-atual:hover{ background:rgba(255,255,255,0.1); }
   .ms-grid { display:flex; justify-content:space-between; gap:10px; }
   .ms-item { display:flex; flex-direction:column; gap:4px; font-size:0.8rem; color:#B4C4B7;}
   .ms-item b { font-family:'Fraunces',serif; font-size:1.2rem; font-weight:600; color:#fff;}
@@ -38,8 +51,10 @@
   .date-nav button.nav-btn:hover{background:#fff;}
   .date-label{text-align:center; min-width:220px; position:relative;}
   .date-label .dia-wrap {display:flex; align-items:center; justify-content:center; gap:8px;}
-  .date-label .dia{font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; text-transform:capitalize;}
-  
+  .date-label .dia{font-family:'Fraunces',serif; font-size:1.15rem; font-weight:600; text-transform:capitalize; padding:3px 10px; border-radius:14px; transition:background 0.15s, color 0.15s;}
+  .date-label .dia.dia-lucro{ background:rgba(63,107,68,0.12); color:var(--green-ok); }
+  .date-label .dia.dia-prejuizo{ background:rgba(140,59,46,0.1); color:var(--wine-dark); }
+
   .icon-picker {background:none; border:none; font-size:1.2rem; cursor:pointer; padding:2px;}
   .date-label .hoje-link{display:none; font-size:0.75rem; color:var(--wine); cursor:pointer; margin-top:2px;}
   .date-label .hoje-link.show{display:block;}
@@ -118,14 +133,17 @@
 <main>
   <div class="month-summary">
     <div class="ms-title">
-      <span>Resumo do Mês <span id="mesNomeTop"></span> </span>
-      <button class="icon-picker" id="btnPickMes">📅</button>
-      <input type="month" id="pickerMes" class="hidden-picker">
+      <span class="ms-label">Resumo do Mês</span>
+      <div class="ms-controls">
+        <button class="btn-mes-atual" id="btnMesAtual">mês atual</button>
+        <select id="selectMes"></select>
+        <select id="selectAno"></select>
+      </div>
     </div>
     <div class="ms-grid">
       <div class="ms-item">Entradas <b id="mesEntradas">R$ 0,00</b></div>
       <div class="ms-item">Saídas <b class="red" id="mesSaidas">R$ 0,00</b></div>
-      <div class="ms-item">Lucro <b class="green" id="mesLucro">R$ 0,00</b></div>
+      <div class="ms-item">Lucro <b id="mesLucro">R$ 0,00</b></div>
     </div>
   </div>
 
@@ -234,6 +252,11 @@
       <input type="text" id="gastoDescricao" placeholder="Ex: manutenção da geladeira">
     </div>
 
+    <div id="gastoObsWrap" style="display:none;">
+      <label>Observação (opcional)</label>
+      <input type="text" id="gastoObservacao" placeholder="Ex: adiantamento, motivo, detalhe...">
+    </div>
+
     <label>Valor (R$)</label>
     <input type="text" id="gastoValor" inputmode="numeric" placeholder="0,00">
     <div class="modal-err" id="gastoErr"></div>
@@ -307,15 +330,40 @@ document.getElementById('pickerData').addEventListener('change', (e) => {
   }
 });
 
-document.getElementById('btnPickMes').addEventListener('click', () => {
-  try { document.getElementById('pickerMes').showPicker(); } catch(e) { document.getElementById('pickerMes').focus(); }
-});
-document.getElementById('pickerMes').addEventListener('change', (e) => {
-  if(e.target.value){
-    const [y, m] = e.target.value.split('-');
-    currentMesDate = new Date(y, m-1, 1);
-    refreshMes(); // Atualiza SÓ a caixinha do mês, sem mudar a data do caixa
-  }
+// ---------- Selects de Mês/Ano (resumo mensal) ----------
+const nomesMeses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+(function initMesSelects(){
+  const selMes = document.getElementById('selectMes');
+  selMes.innerHTML = nomesMeses.map((n, i) => `<option value="${i}">${n}</option>`).join('');
+
+  const selAno = document.getElementById('selectAno');
+  const anoAtual = new Date().getFullYear();
+  const anos = [];
+  for (let a = anoAtual - 4; a <= anoAtual + 1; a++) anos.push(a);
+  selAno.innerHTML = anos.map(a => `<option value="${a}">${a}</option>`).join('');
+})();
+
+function syncMesSelects(){
+  document.getElementById('selectMes').value = currentMesDate.getMonth();
+  document.getElementById('selectAno').value = currentMesDate.getFullYear();
+  const hoje = new Date();
+  const ehMesAtual = currentMesDate.getMonth() === hoje.getMonth() && currentMesDate.getFullYear() === hoje.getFullYear();
+  document.getElementById('btnMesAtual').classList.toggle('show', !ehMesAtual);
+}
+
+function onMesAnoChange(){
+  const m = Number(document.getElementById('selectMes').value);
+  const a = Number(document.getElementById('selectAno').value);
+  currentMesDate = new Date(a, m, 1);
+  syncMesSelects();
+  refreshMes(); // Atualiza SÓ a caixinha do mês, sem mudar a data do caixa
+}
+document.getElementById('selectMes').addEventListener('change', onMesAnoChange);
+document.getElementById('selectAno').addEventListener('change', onMesAnoChange);
+document.getElementById('btnMesAtual').addEventListener('click', () => {
+  currentMesDate = new Date();
+  syncMesSelects();
+  refreshMes();
 });
 
 function renderDateLabel(){
@@ -344,9 +392,8 @@ async function refreshMes() {
   const lastDay = new Date(ano, currentMesDate.getMonth() + 1, 0).getDate();
   const startMes = `${ano}-${mes}-01`;
   const endMes = `${ano}-${mes}-${lastDay}`;
-  
-  document.getElementById('mesNomeTop').textContent = currentMesDate.toLocaleDateString('pt-BR', { month:'long', year:'numeric' });
-  document.getElementById('pickerMes').value = `${ano}-${mes}`;
+
+  syncMesSelects();
 
   const [resMesEnt, resMesGas] = await Promise.all([
     db.from('entradas').select('valor').gte('data', startMes).lte('data', endMes),
@@ -355,9 +402,13 @@ async function refreshMes() {
 
   const totE = (resMesEnt.data || []).reduce((s,x) => s + Number(x.valor), 0);
   const totG = (resMesGas.data || []).reduce((s,x) => s + Number(x.valor), 0);
+  const lucroMes = totE - totG;
   document.getElementById('mesEntradas').textContent = fmtBRL(totE);
   document.getElementById('mesSaidas').textContent = fmtBRL(totG);
-  document.getElementById('mesLucro').textContent = fmtBRL(totE - totG);
+  const elLucroMes = document.getElementById('mesLucro');
+  elLucroMes.textContent = fmtBRL(lucroMes);
+  elLucroMes.classList.toggle('green', lucroMes >= 0);
+  elLucroMes.classList.toggle('red', lucroMes < 0);
 }
 
 async function refresh(){
@@ -383,9 +434,19 @@ const fpLabel = { dinheiro:'Dinheiro', cartao:'Cartão', ifood:'iFood', '99':'99
 function renderSummary(entradas, gastos){
   const tE = entradas.reduce((s,e) => s + Number(e.valor), 0);
   const tG = gastos.reduce((s,g) => s + Number(g.valor), 0);
+  const saldo = tE - tG;
   document.getElementById('totalEntradas').textContent = fmtBRL(tE);
   document.getElementById('totalGastos').textContent = fmtBRL(tG);
-  document.getElementById('saldoDia').textContent = fmtBRL(tE - tG);
+  const elSaldo = document.getElementById('saldoDia');
+  elSaldo.textContent = fmtBRL(saldo);
+  elSaldo.style.color = saldo < 0 ? 'var(--wine-dark)' : 'var(--green-ok)';
+
+  // Colore o dia no seletor de data: verde (lucro), vermelho (prejuízo), neutro (sem lançamentos ainda)
+  const diaEl = document.getElementById('diaLabel');
+  diaEl.classList.remove('dia-lucro', 'dia-prejuizo');
+  if (entradas.length || gastos.length) {
+    diaEl.classList.add(saldo >= 0 ? 'dia-lucro' : 'dia-prejuizo');
+  }
 
   const byForma = {};
   entradas.forEach(e => byForma[e.forma_pagamento] = (byForma[e.forma_pagamento]||0) + Number(e.valor));
@@ -433,7 +494,7 @@ function renderListaGastos(gastos){
   if (!gastos.length){ el.innerHTML = '<div class="empty">Nenhum gasto lançado.</div>'; return; }
   el.innerHTML = gastos.map(g => `
     <div class="row-item">
-      <div class="desc"><span class="tag">${labelFor[g.categoria] || 'Outros'}</span>${nomeGasto(g)}</div>
+      <div class="desc"><span class="tag">${labelFor[g.categoria] || 'Outros'}</span>${nomeGasto(g)}${g.observacao ? `<span class="tag" style="background:#E2E8E4;">${g.observacao}</span>` : ''}</div>
       <div class="right">
         <span class="valor">${fmtBRL(g.valor)}</span>
         <button class="icon-btn edit" data-edit-gasto="${g.id}">✎</button>
@@ -526,9 +587,9 @@ document.getElementById('btnSalvarEntrada').addEventListener('click', async () =
 
 // ---------- Gasto ----------
 let estGasto = { cat:null, editId:null, onChange: (c) => {
-  const sel = document.getElementById('gastoSelectWrap'), out = document.getElementById('gastoOutrosWrap');
-  if (c === 'outros'){ sel.style.display = 'none'; out.style.display = 'block'; }
-  else if(c){ out.style.display = 'none'; sel.style.display = 'block'; document.getElementById('gastoSelectLabel').textContent = labelFor[c]; populateSelect(c); }
+  const sel = document.getElementById('gastoSelectWrap'), out = document.getElementById('gastoOutrosWrap'), obs = document.getElementById('gastoObsWrap');
+  if (c === 'outros'){ sel.style.display = 'none'; out.style.display = 'block'; obs.style.display = 'none'; }
+  else if(c){ out.style.display = 'none'; sel.style.display = 'block'; document.getElementById('gastoSelectLabel').textContent = labelFor[c]; populateSelect(c); obs.style.display = (c === 'particular') ? 'block' : 'none'; }
 }};
 setupPills('categoriaPills', estGasto, 'cat');
 
@@ -555,9 +616,11 @@ function abrirModalGasto(gastoEdit = null) {
     mascaraMoeda({target: document.getElementById('gastoValor')});
     if(catToSelect === 'outros') document.getElementById('gastoDescricao').value = gastoEdit.descricao || '';
     else document.getElementById('gastoSelect').value = gastoEdit[`${catToSelect}_id`];
+    document.getElementById('gastoObservacao').value = gastoEdit.observacao || '';
   } else {
     document.getElementById('gastoValor').value = '';
     document.getElementById('gastoDescricao').value = '';
+    document.getElementById('gastoObservacao').value = '';
   }
   
   document.getElementById('overlayGasto').classList.add('show');
@@ -582,6 +645,10 @@ document.getElementById('btnSalvarGasto').addEventListener('click', async () => 
     const selId = document.getElementById('gastoSelect').value;
     if (!selId) { err.textContent = 'Selecione um item (ou cadastre).'; return; }
     payload[estGasto.cat + '_id'] = selId;
+  }
+  if (estGasto.cat === 'particular'){
+    const obs = document.getElementById('gastoObservacao').value.trim();
+    payload.observacao = obs || null;
   }
 
   err.textContent = 'Salvando...';
@@ -634,6 +701,7 @@ function addEnter(idInput, idBtn) {
 addEnter('entradaValor', 'btnSalvarEntrada');
 addEnter('gastoValor', 'btnSalvarGasto');
 addEnter('gastoDescricao', 'btnSalvarGasto');
+addEnter('gastoObservacao', 'btnSalvarGasto');
 addEnter('gerenciarNovoNome', 'btnGerenciarAdicionar');
 
 document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', () => document.getElementById(btn.dataset.close).classList.remove('show')));
